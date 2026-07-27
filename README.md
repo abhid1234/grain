@@ -80,9 +80,20 @@ rules and [`BUILD_PLAN.md`](BUILD_PLAN.md) for where it's headed.
 
 ## Status
 
-Early and building in the open. This is a personal experiment exploring what
-becomes possible when agent sessions are first-class, durable artifacts — not an
-endorsement of any product. Evaluate any tool against your own security and
-compliance needs.
+`v0.2.0`. Four signals (commands, corrections, dead-ends, conventions), three
+commands (`scan` / `agents` / `audit`), the Entire adapter with provenance, and an
+optional cautious-only LLM layer — ~190 zero-dependency tests. See
+[`DEMO.md`](DEMO.md) for real output and [`LAUNCH.md`](LAUNCH.md) for the writeup.
+
+This is a personal experiment exploring what becomes possible when agent sessions
+are first-class, durable artifacts — not an endorsement of any product. Evaluate
+any session-log tooling against your own security and compliance needs.
+
+### Built in the open
+
+grain was itself built by an AI agent over a sequence of hourly iterations, each
+one scoped, tested, and committed — the same kind of session history grain is
+designed to read. Fitting, for a tool about learning from how software actually
+gets made.
 
 MIT © Abhi Das

@@ -71,9 +71,10 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   commands. Committed real `grain agents` output at `examples/AGENTS.sample.md`
   (0 secrets, 0 raw home paths). 190 tests. Real commands: `node --test` 122×.
 
-- [ ] **10 — Launch.**
-  README polish, a short write-up / post draft (tagging Entire's founder), a demo
-  GIF or asciicast, and a tagged `v0.2.0`. Package for `npx grain`.
+- [x] **10 — Launch.**
+  `LAUNCH.md` (LinkedIn + X post drafts, tagging Entire's founder), `DEMO.md`
+  (real unedited command output), README polished with status + "built in the
+  open" note, version bumped to 0.2.0 and tagged. `npx grain` ready (bin + files).
 
 ---
 

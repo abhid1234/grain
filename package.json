@@ -1,6 +1,6 @@
 {
   "name": "grain",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Turn your agents' sessions into your repo's house rules. Grain reads captured agent-coding sessions (via Entire, or raw Claude Code transcripts) and distills the project-specific context an agent needs — the conventions, commands, and dead ends the final diff erases.",
   "type": "module",
   "license": "MIT",
