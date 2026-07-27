@@ -1,0 +1,45 @@
+{
+  "name": "grain",
+  "version": "0.1.0",
+  "description": "Turn your agents' sessions into your repo's house rules. Grain reads captured agent-coding sessions (via Entire, or raw Claude Code transcripts) and distills the project-specific context an agent needs — the conventions, commands, and dead ends the final diff erases.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Abhi Das",
+  "bin": {
+    "grain": "bin/grain.js"
+  },
+  "main": "src/cli/grain.js",
+  "files": [
+    "src",
+    "bin",
+    "AGENTS.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "entire",
+    "agents",
+    "ai",
+    "claude-code",
+    "context",
+    "agents-md",
+    "provenance",
+    "session-logs",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/abhid1234/grain.git"
+  },
+  "homepage": "https://github.com/abhid1234/grain#readme",
+  "bugs": {
+    "url": "https://github.com/abhid1234/grain/issues"
+  }
+}
