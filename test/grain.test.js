@@ -14,6 +14,7 @@ import { classifyUndo, pathsIn, extractReverts } from '../src/core/signals/rever
 import { observe, extractConventions } from '../src/core/signals/conventions.js';
 import { renderAgents } from '../src/core/render/agents.js';
 import { lineDiff, summarizeDiff, renderDiff } from '../src/core/diff.js';
+import { normalizeCheckpoint, parseCheckpointList, checkpointToSession } from '../src/adapters/entire.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -378,6 +379,44 @@ test('lineDiff', (t) => Promise.all([
     assert.match(out, /- old/);
   }),
 ]));
+
+test('entire: normalizeCheckpoint field fallbacks', (t) => Promise.all([
+  t.test('camelCase', () => {
+    const n = normalizeCheckpoint({ checkpointId: 'cp1', sessionId: 's1', commitSha: 'abc123', summary: 'did a thing' });
+    assert.deepEqual([n.id, n.session, n.commit, n.intent], ['cp1', 's1', 'abc123', 'did a thing']);
+  }),
+  t.test('snake_case + canonical', () => {
+    const n = normalizeCheckpoint({ id: 'cp2', session_id: 's2', sha: 'def456', intent: 'x' });
+    assert.deepEqual([n.id, n.session, n.commit, n.intent], ['cp2', 's2', 'def456', 'x']);
+  }),
+]));
+
+test('entire: parseCheckpointList', (t) => Promise.all([
+  t.test('empty array', () => assert.deepEqual(parseCheckpointList('[]'), [])),
+  t.test('array form', () => assert.equal(parseCheckpointList('[{"id":"a"},{"id":"b"}]').length, 2)),
+  t.test('wrapped form', () => assert.equal(parseCheckpointList('{"checkpoints":[{"id":"a"}]}').length, 1)),
+  t.test('garbage is empty', () => assert.deepEqual(parseCheckpointList('not json'), [])),
+]));
+
+test('entire: checkpointToSession carries provenance', (t) => {
+  const raw = [
+    '{"type":"user","cwd":"/repo","message":{"role":"user","content":[{"type":"text","text":"do it"}]}}',
+    '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"node --test"}}]}}',
+  ].join('\n');
+  const env = normalizeCheckpoint({ id: 'cp9', sessionId: 'sess9', commit: 'deadbee', intent: 'add tests' });
+  const sess = checkpointToSession(env, raw);
+  return Promise.all([
+    t.test('parsed events from raw transcript', () => assert.equal(eventsOf(sess, 'tool', 'Bash').length, 1)),
+    t.test('provenance set', () =>
+      assert.deepEqual(sess.provenance, { source: 'entire', checkpoint: 'cp9', commit: 'deadbee', intent: 'add tests' })),
+    t.test('distill surfaces the source', () => {
+      const ctx = distill([sess]);
+      assert.equal(ctx.sources.length, 1);
+      assert.equal(ctx.sources[0].commit, 'deadbee');
+      assert.match(renderBrief(ctx), /Provenance: 1 Entire checkpoint/);
+    }),
+  ]);
+});
 
 test('adapter: loadTranscript', (t) => {
   const sess = loadTranscript(join(here, 'fixtures', 'tiny.jsonl'));

@@ -41,10 +41,13 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   AGENTS.md]` prints the proposal or a pure LCS line-diff (`core/diff.js`) against
   an existing file. 135 tests. Produces a real, usable proposal from live sessions.
 
-- [ ] **6 — Entire adapter.**
-  Read captured sessions from Entire (`entire checkpoint list/explain`, the
-  `entire/checkpoints/v1` ref) and normalize to `Session`. Attach provenance:
-  each distilled rule links back to the checkpoint/commit it came from.
+- [x] **6 — Entire adapter.**
+  `src/adapters/entire.js` reads captured sessions via `entire checkpoint explain
+  --json` (metadata) + `--raw-transcript` (reusing the Claude Code parser) and
+  normalizes to `Session` with provenance `{source, checkpoint, commit, intent}`.
+  distill surfaces `sources`; the brief notes provenance. `grain scan/agents
+  --entire [repo]`. Degrades gracefully to 0 sessions when no checkpoints exist.
+  147 tests. (Per-rule provenance deepens in iteration 8 — grain audit.)
 
 - [ ] **7 — Optional LLM phrasing layer.**
   `grain scan --llm` uses Claude to turn deterministic signals into clean prose

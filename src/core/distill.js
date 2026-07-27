@@ -81,6 +81,14 @@ export function distill(sessions) {
     conventions[dim] = { values, dominant: values[0] };
   }
 
+  // Provenance — which Entire checkpoints/commits these sessions came from.
+  const sources = [];
+  const seenSrc = new Set();
+  for (const s of sessions) {
+    const p = s.provenance;
+    if (p && p.checkpoint && !seenSrc.has(p.checkpoint)) { seenSrc.add(p.checkpoint); sources.push(p); }
+  }
+
   return {
     sessionCount: sessions.length,
     commandCount: all.length,
@@ -88,5 +96,6 @@ export function distill(sessions) {
     corrections: { count: corr.length, byKind, recurring, samples: corr.slice(0, 5) },
     reverts: { count: rev.length, byReason: revByReason, files: revFiles },
     conventions,
+    sources,
   };
 }

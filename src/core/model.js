@@ -19,9 +19,13 @@
  * )} Event
  */
 
-/** @param {string} id @param {string} project @param {Event[]} events @returns {Session} */
-export function session(id, project = '', events = []) {
-  return { id, project, events };
+/**
+ * @param {string} id @param {string} project @param {Event[]} events
+ * @param {object|null} [provenance] where this session came from (e.g. an Entire checkpoint/commit)
+ * @returns {Session}
+ */
+export function session(id, project = '', events = [], provenance = null) {
+  return { id, project, events, provenance };
 }
 
 export const isSession = (s) =>

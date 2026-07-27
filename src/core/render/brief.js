@@ -27,6 +27,10 @@ export function renderBrief(ctx, opts = {}) {
     `_From ${ctx.sessionCount} session(s), ${ctx.commandCount} shell command(s) observed. ` +
       'This is learned from how the repo was actually worked in, not guessed._',
   );
+  if (ctx.sources && ctx.sources.length) {
+    out.push('');
+    out.push(`_Provenance: ${ctx.sources.length} Entire checkpoint(s) — traceable to the commits that produced them._`);
+  }
   out.push('');
   for (const cat of ORDER) {
     const items = ctx.commands[cat];

@@ -14,15 +14,17 @@ function textOf(content) {
 }
 
 /**
- * Parse one transcript file into a Session.
- * @param {string} path
+ * Parse Claude Code JSONL transcript text into a Session. Pure (no I/O) so it can
+ * be reused by other adapters (e.g. Entire's --raw-transcript output).
+ * @param {string} text
+ * @param {{id?:string, project?:string, provenance?:object}} [opts]
  * @returns {import('../core/model.js').Session}
  */
-export function loadTranscript(path) {
-  const id = basename(path).replace(/\.jsonl$/, '');
-  const lines = readFileSync(path, 'utf8').split('\n');
+export function parseTranscript(text, opts = {}) {
+  const id = opts.id || 'session';
+  const lines = String(text || '').split('\n');
   const events = [];
-  let project = '';
+  let project = opts.project || '';
 
   for (const line of lines) {
     if (!line) continue;
@@ -60,7 +62,17 @@ export function loadTranscript(path) {
       }
     }
   }
-  return session(id, project, events);
+  return session(id, project, events, opts.provenance || null);
+}
+
+/**
+ * Parse one transcript file into a Session.
+ * @param {string} path
+ * @returns {import('../core/model.js').Session}
+ */
+export function loadTranscript(path) {
+  const id = basename(path).replace(/\.jsonl$/, '');
+  return parseTranscript(readFileSync(path, 'utf8'), { id });
 }
 
 /** Resolve a file or directory into a list of transcript paths. */
