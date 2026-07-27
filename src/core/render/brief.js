@@ -67,5 +67,28 @@ export function renderBrief(ctx, opts = {}) {
     out.push('');
   }
 
+  const conv = ctx.conventions;
+  if (conv && Object.keys(conv).length) {
+    const DIM_ORDER = ['module', 'test-runner', 'assert', 'test-style', 'errors', 'quotes', 'indent'];
+    const DIM_LABEL = {
+      module: 'Module system', 'test-runner': 'Test runner', assert: 'Assertions',
+      'test-style': 'Test style', errors: 'Error handling', quotes: 'Quote style', indent: 'Indentation',
+    };
+    out.push('## House conventions (from the code the agent wrote)');
+    const dims = Object.keys(conv).sort(
+      (a, b) => (DIM_ORDER.indexOf(a) + 1 || 99) - (DIM_ORDER.indexOf(b) + 1 || 99),
+    );
+    for (const dim of dims) {
+      const d = conv[dim];
+      const dv = d.dominant;
+      const total = d.values.reduce((s, v) => s + v.n, 0);
+      const label = DIM_LABEL[dim] || dim;
+      let line = `- **${label}:** ${dv.value} (${dv.n}/${total})`;
+      if (dv.example) line += ` — e.g. \`${redact(dv.example)}\``;
+      out.push(line);
+    }
+    out.push('');
+  }
+
   return out.join('\n').trimEnd() + '\n';
 }

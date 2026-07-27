@@ -27,9 +27,12 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   pending-vs-committed edits so committed work isn't counted. 100 tests. On real
   transcripts: 378 reverts (removed 248×, bulk-reset 128×, git-checkout 2×).
 
-- [ ] **4 — Conventions signal.**
-  From `Write`/`Edit` events, extract repeated code shapes: import styles, test
-  scaffolding, error-handling idioms, file/dir naming. Frequency + example.
+- [x] **4 — Conventions signal.**
+  From `Write`/`Edit`/`MultiEdit` content, observe house style: module system
+  (esm/cjs), test runner, assertions, table-driven test style, error handling
+  (result-return vs throw), quotes, indentation. Frequency + redacted example,
+  deduped per file. 120 tests. Real transcripts: esm 149/159, node:test 33/33,
+  table-driven 9/9, 2-space 572/805.
 
 - [ ] **5 — RepoContext + AGENTS.md proposal.**
   Combine all signals into a structured `RepoContext` (commands, conventions,

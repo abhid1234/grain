@@ -11,6 +11,7 @@ import { loadTranscript } from '../src/adapters/claudecode.js';
 import { redact, hasSecret } from '../src/core/redact.js';
 import { classifyCorrection, preferenceKey, extractCorrections, isNoise } from '../src/core/signals/corrections.js';
 import { classifyUndo, pathsIn, extractReverts } from '../src/core/signals/reverts.js';
+import { observe, extractConventions } from '../src/core/signals/conventions.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -252,6 +253,68 @@ test('distill: reverts', (t) => {
     t.test('top file', () => assert.deepEqual(ctx.reverts.files[0], { file: 'a.js', n: 2 })),
     t.test('render shows dead-ends section', () =>
       assert.match(renderBrief(ctx), /Paths tried and abandoned/)),
+  ]);
+});
+
+const ESM_TEST_CODE = [
+  "import test from 'node:test';",
+  "import assert from 'node:assert/strict';",
+  "import { ok, err } from '../src/result.js';",
+  '',
+  'export function thing(x) {',
+  '  const cases = [{ in: 1, want: 2 }];',
+  "  if (!x) return err('bad-input');",
+  '  return ok(x);',
+  '}',
+].join('\n');
+
+test('observe conventions', (t) => {
+  const obs = observe(ESM_TEST_CODE);
+  const has = (dim, val) => obs.some((o) => o.dimension === dim && o.value === val);
+  return Promise.all([
+    t.test('esm module', () => assert.equal(has('module', 'esm'), true)),
+    t.test('node:test runner', () => assert.equal(has('test-runner', 'node:test'), true)),
+    t.test('node:assert', () => assert.equal(has('assert', 'node:assert'), true)),
+    t.test('table-driven', () => assert.equal(has('test-style', 'table-driven'), true)),
+    t.test('result-return errors', () => assert.equal(has('errors', 'result-return'), true)),
+    t.test('single quotes', () => assert.equal(has('quotes', 'single'), true)),
+    t.test('2-space indent', () => assert.equal(has('indent', '2-space'), true)),
+    t.test('deduped per content', () =>
+      assert.equal(obs.filter((o) => o.dimension === 'module').length, 1)),
+  ]);
+});
+
+test('observe: cjs + throw + double quotes', (t) => {
+  const code = 'const x = require("fs");\nfunction f() {\n    throw new Error("nope");\n}';
+  const obs = observe(code);
+  const has = (dim, val) => obs.some((o) => o.dimension === dim && o.value === val);
+  return Promise.all([
+    t.test('cjs', () => assert.equal(has('module', 'cjs'), true)),
+    t.test('throw', () => assert.equal(has('errors', 'throw'), true)),
+    t.test('double quotes', () => assert.equal(has('quotes', 'double'), true)),
+    t.test('4-space indent', () => assert.equal(has('indent', '4-space'), true)),
+  ]);
+});
+
+test('observe redacts examples', () => {
+  const code = "import x from 'node:test'; // key=ghp_abcdefghijklmnopqrstuvwxyz0123456789";
+  for (const o of observe(code)) if (o.example) assert.doesNotMatch(o.example, /ghp_abcdef/);
+});
+
+test('distill: conventions', (t) => {
+  const sess = session('cv', '/repo', [
+    ev.tool('Write', { file_path: 'a.js', content: ESM_TEST_CODE }),
+    ev.tool('Write', { file_path: 'b.js', content: ESM_TEST_CODE }),
+    ev.tool('Write', { file_path: 'c.js', content: 'const y = require("x");' }),
+  ]);
+  const ctx = distill([sess]);
+  return Promise.all([
+    t.test('module dominant is esm', () => assert.equal(ctx.conventions.module.dominant.value, 'esm')),
+    t.test('esm counted twice', () => assert.equal(ctx.conventions.module.dominant.n, 2)),
+    t.test('errors dominant is result-return', () =>
+      assert.equal(ctx.conventions.errors.dominant.value, 'result-return')),
+    t.test('render shows conventions section', () =>
+      assert.match(renderBrief(ctx), /House conventions/)),
   ]);
 });
 

@@ -4,6 +4,7 @@
 import { extractCommands } from './signals/commands.js';
 import { extractCorrections, preferenceKey } from './signals/corrections.js';
 import { extractReverts } from './signals/reverts.js';
+import { extractConventions } from './signals/conventions.js';
 
 /**
  * @typedef {Object} RepoContext
@@ -63,11 +64,29 @@ export function distill(sessions) {
     .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
     .map(([file, n]) => ({ file, n }));
 
+  // Conventions — house style observed in the code the agent wrote.
+  const convObs = [];
+  for (const s of sessions) convObs.push(...extractConventions(s));
+  const dims = {};
+  for (const o of convObs) {
+    const d = (dims[o.dimension] ||= { counts: new Map(), example: new Map() });
+    d.counts.set(o.value, (d.counts.get(o.value) || 0) + 1);
+    if (o.example && !d.example.has(o.value)) d.example.set(o.value, o.example);
+  }
+  const conventions = {};
+  for (const [dim, d] of Object.entries(dims)) {
+    const values = [...d.counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .map(([value, n]) => ({ value, n, example: d.example.get(value) }));
+    conventions[dim] = { values, dominant: values[0] };
+  }
+
   return {
     sessionCount: sessions.length,
     commandCount: all.length,
     commands,
     corrections: { count: corr.length, byKind, recurring, samples: corr.slice(0, 5) },
     reverts: { count: rev.length, byReason: revByReason, files: revFiles },
+    conventions,
   };
 }
