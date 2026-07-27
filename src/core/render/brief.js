@@ -35,5 +35,24 @@ export function renderBrief(ctx, opts = {}) {
     for (const { cmd, n } of items.slice(0, top)) out.push(`- \`${redact(cmd)}\`  ·  ${n}×`);
     out.push('');
   }
+
+  const c = ctx.corrections;
+  if (c && c.count > 0) {
+    out.push('## What reviewers kept correcting');
+    const kinds = Object.entries(c.byKind).sort((a, b) => b[1] - a[1]);
+    out.push(
+      `_${c.count} redirection(s): ` + kinds.map(([k, n]) => `${k} ${n}×`).join(', ') + '._',
+    );
+    out.push('');
+    if (c.recurring.length) {
+      out.push('Recurring — worth writing into AGENTS.md:');
+      for (const r of c.recurring.slice(0, top)) out.push(`- “${redact(r.sample)}”  ·  ${r.n}×`);
+    } else {
+      out.push('Recent redirections:');
+      for (const s of c.samples.slice(0, top)) out.push(`- _(${s.kind})_ “${redact(s.text)}”`);
+    }
+    out.push('');
+  }
+
   return out.join('\n').trimEnd() + '\n';
 }

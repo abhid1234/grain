@@ -14,10 +14,12 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   (test/build/run/deps/lint/vcs classification), `distill`, `renderBrief`, `grain
   scan` CLI. Secret **redaction** on all output. Runs on real transcripts. 50 tests.
 
-- [ ] **2 — Corrections signal.**
+- [x] **2 — Corrections signal.**
   Detect user redirections/rebukes ("no, do X", "don't…", "actually…", "revert")
   from prompt events that follow an agent action. Turn recurring corrections into
-  candidate preferences. Redact. Table-driven tests + fixture.
+  candidate preferences. Redact. Table-driven tests + fixture. Filters harness/
+  system-injected text (length cap + marker skip). 76 tests. On real transcripts:
+  180 raw → 32 real redirections after noise filtering.
 
 - [ ] **3 — Reverts / dead-ends signal.**
   Find edits that a later edit or `git revert`/`checkout` undid — the paths the

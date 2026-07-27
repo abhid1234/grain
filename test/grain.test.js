@@ -9,6 +9,7 @@ import { distill } from '../src/core/distill.js';
 import { renderBrief } from '../src/core/render/brief.js';
 import { loadTranscript } from '../src/adapters/claudecode.js';
 import { redact, hasSecret } from '../src/core/redact.js';
+import { classifyCorrection, preferenceKey, extractCorrections, isNoise } from '../src/core/signals/corrections.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -102,6 +103,92 @@ test('commands: meaningful segment beats cd/export prefix', (t) => Promise.all([
   t.test('skips export secret', () => assert.equal(canonical('export TOKEN="vcp_aaaaaaaaaaaaaaaaaaaaaaaa" && vercel deploy'), 'vercel deploy')),
   t.test('classifies through cd', () => assert.equal(classify('cd ~/repo && npm test'), 'test')),
 ]));
+
+test('classifyCorrection', (t) => {
+  const cases = [
+    { input: 'no, revert that change', want: 'revert' },
+    { input: "don't use a class here", want: 'negation' },
+    { input: 'actually, make it return a Result', want: 'redirect' },
+    { input: 'No. Try the other approach.', want: 'no-lead' },
+    { input: 'looks great, ship it', want: null },
+    { input: 'add another test please', want: null },
+  ];
+  return Promise.all(cases.map((c) =>
+    t.test(c.input, () => assert.equal(classifyCorrection(c.input), c.want))));
+});
+
+test('preferenceKey', (t) => Promise.all([
+  t.test('normalizes + trims to 6 words', () =>
+    assert.equal(preferenceKey("Don't use floats — use integer cents instead!"), 'dont use floats use integer cents')),
+  t.test('collapses whitespace/case', () =>
+    assert.equal(preferenceKey('REVERT   That'), 'revert that')),
+]));
+
+test('isNoise (harness/system text is not a correction)', (t) => Promise.all([
+  t.test('long block', () => assert.equal(isNoise('no '.repeat(120)), true)),
+  t.test('local-command caveat', () => assert.equal(isNoise('<local-command-caveat> do not respond'), true)),
+  t.test('build tick', () => assert.equal(isNoise('GRAIN BUILD TICK — do not ask questions'), true)),
+  t.test('real short correction is fine', () => assert.equal(isNoise("no, don't use floats"), false)),
+]));
+
+test('extractCorrections filters noise', (t) => {
+  const sess = session('n1', '/r', [
+    ev.tool('Bash', { command: 'ls' }),
+    ev.prompt('<local-command-caveat> do not respond to these messages'),
+    ev.prompt("no, don't use floats"),
+  ]);
+  return t.test('only the human correction survives', () =>
+    assert.deepEqual(extractCorrections(sess).map((c) => c.kind), ['negation']));
+});
+
+test('extractCorrections', (t) => {
+  // prompt, agent acts, then corrections follow; a leading ask is not a correction.
+  const sess = session('c1', '/repo', [
+    ev.prompt("don't do this yet"),          // ignored: no prior agent action
+    ev.tool('Write', { file_path: 'a.js' }),
+    ev.prompt('no, use integer cents'),
+    ev.say('okay'),
+    ev.tool('Edit', { file_path: 'a.js' }),
+    ev.prompt('actually, return a Result instead of throwing'),
+    ev.prompt('great, thanks'),               // not a correction
+    ev.prompt('revert that last change'),
+  ]);
+  const got = extractCorrections(sess);
+  return Promise.all([
+    t.test('ignores the opening ask', () => assert.equal(got.length, 3)),
+    t.test('kinds detected', () =>
+      assert.deepEqual(got.map((c) => c.kind), ['no-lead', 'redirect', 'revert'])),
+    t.test('redacts', () => {
+      const s2 = session('c2', '/r', [
+        ev.tool('Bash', { command: 'ls' }),
+        ev.prompt("don't hardcode ghp_abcdefghijklmnopqrstuvwxyz0123456789 in there"),
+      ]);
+      assert.doesNotMatch(extractCorrections(s2)[0].text, /ghp_abcdef/);
+    }),
+  ]);
+});
+
+test('distill: corrections', (t) => {
+  const sess = session('d1', '/repo', [
+    ev.tool('Write', { file_path: 'a.js' }),
+    ev.prompt('no, use integer cents'),
+    ev.tool('Edit', { file_path: 'a.js' }),
+    ev.prompt('no, use integer cents'),        // recurring -> candidate preference
+    ev.tool('Edit', { file_path: 'a.js' }),
+    ev.prompt('revert that'),
+  ]);
+  const ctx = distill([sess]);
+  return Promise.all([
+    t.test('counts', () => assert.equal(ctx.corrections.count, 3)),
+    t.test('byKind', () => assert.deepEqual(ctx.corrections.byKind, { 'no-lead': 2, revert: 1 })),
+    t.test('recurring surfaced', () => {
+      assert.equal(ctx.corrections.recurring.length, 1);
+      assert.equal(ctx.corrections.recurring[0].n, 2);
+    }),
+    t.test('render shows the section', () =>
+      assert.match(renderBrief(ctx), /What reviewers kept correcting/)),
+  ]);
+});
 
 test('adapter: loadTranscript', (t) => {
   const sess = loadTranscript(join(here, 'fixtures', 'tiny.jsonl'));

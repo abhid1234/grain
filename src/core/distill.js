@@ -2,12 +2,14 @@
 // Pure and deterministic: same sessions in, same context out.
 
 import { extractCommands } from './signals/commands.js';
+import { extractCorrections, preferenceKey } from './signals/corrections.js';
 
 /**
  * @typedef {Object} RepoContext
  * @property {number} sessionCount
  * @property {number} commandCount
  * @property {Record<string, {cmd:string, n:number}[]>} commands  by category, freq-sorted
+ * @property {{count:number, byKind:Record<string,number>, recurring:{key:string,n:number,sample:string}[], samples:{kind:string,text:string}[]}} corrections
  */
 
 /**
@@ -32,5 +34,27 @@ export function distill(sessions) {
       .map(([cmd, n]) => ({ cmd, n }));
   }
 
-  return { sessionCount: sessions.length, commandCount: all.length, commands };
+  // Corrections — redirections the human made after an agent action.
+  const corr = [];
+  for (const s of sessions) corr.push(...extractCorrections(s));
+  const byKind = {};
+  for (const c of corr) byKind[c.kind] = (byKind[c.kind] || 0) + 1;
+  const keyMap = new Map();
+  for (const c of corr) {
+    const k = preferenceKey(c.text);
+    if (!k) continue;
+    const cur = keyMap.get(k) || { key: k, n: 0, sample: c.text };
+    cur.n += 1;
+    keyMap.set(k, cur);
+  }
+  const recurring = [...keyMap.values()]
+    .filter((x) => x.n >= 2)
+    .sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
+
+  return {
+    sessionCount: sessions.length,
+    commandCount: all.length,
+    commands,
+    corrections: { count: corr.length, byKind, recurring, samples: corr.slice(0, 5) },
+  };
 }
