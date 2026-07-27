@@ -34,10 +34,12 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   deduped per file. 120 tests. Real transcripts: esm 149/159, node:test 33/33,
   table-driven 9/9, 2-space 572/805.
 
-- [ ] **5 — RepoContext + AGENTS.md proposal.**
-  Combine all signals into a structured `RepoContext` (commands, conventions,
-  preferences, anti-patterns, hot files). Render a proposed `AGENTS.md` and diff
-  it against the repo's existing one (`grain agents`).
+- [x] **5 — RepoContext + AGENTS.md proposal.**
+  `render/agents.js` turns the distilled context into a proposed AGENTS.md
+  (Commands / Conventions as imperative rules / Preferences from recurring
+  corrections / Watch-out anti-patterns). `grain agents <target> [--against
+  AGENTS.md]` prints the proposal or a pure LCS line-diff (`core/diff.js`) against
+  an existing file. 135 tests. Produces a real, usable proposal from live sessions.
 
 - [ ] **6 — Entire adapter.**
   Read captured sessions from Entire (`entire checkpoint list/explain`, the

@@ -12,6 +12,8 @@ import { redact, hasSecret } from '../src/core/redact.js';
 import { classifyCorrection, preferenceKey, extractCorrections, isNoise } from '../src/core/signals/corrections.js';
 import { classifyUndo, pathsIn, extractReverts } from '../src/core/signals/reverts.js';
 import { observe, extractConventions } from '../src/core/signals/conventions.js';
+import { renderAgents } from '../src/core/render/agents.js';
+import { lineDiff, summarizeDiff, renderDiff } from '../src/core/diff.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -317,6 +319,65 @@ test('distill: conventions', (t) => {
       assert.match(renderBrief(ctx), /House conventions/)),
   ]);
 });
+
+test('renderAgents proposal', (t) => {
+  // Build a rich context: a test command, esm/result conventions, a recurring
+  // correction, and an abandoned file.
+  const code = [
+    "import test from 'node:test';",
+    "import { err, ok } from '../src/result.js';",
+    'export function f(x) {',
+    '  const cases = [];',
+    "  if (!x) return err('bad');",
+    '  return ok(x);',
+    '}',
+  ].join('\n');
+  const sess = session('a1', '/repo', [
+    ev.tool('Write', { file_path: 'src/f.js', content: code }),
+    ev.tool('Bash', { command: 'node --test' }),
+    ev.prompt('no, return a Result not a throw'),
+    ev.tool('Edit', { file_path: 'src/f.js', new_string: code }),
+    ev.prompt('no, return a Result not a throw'),   // recurring
+    ev.tool('Write', { file_path: 'src/scratch.js', content: code }),
+    ev.tool('Bash', { command: 'git checkout -- src/scratch.js' }),
+    ev.tool('Bash', { command: 'git checkout -- src/scratch.js' }),
+  ]);
+  const md = renderAgents(distill([sess]));
+  return Promise.all([
+    t.test('has proposed header', () => assert.match(md, /AGENTS\.md — proposed by Grain/)),
+    t.test('proposes the test command', () => assert.match(md, /\*\*Test:\*\* `node --test`/)),
+    t.test('esm rule', () => assert.match(md, /Use ESM/)),
+    t.test('node:test rule', () => assert.match(md, /node:test/)),
+    t.test('table-driven rule', () => assert.match(md, /table-driven/)),
+    t.test('result rule', () => assert.match(md, /Return a `Result`/)),
+    t.test('preference surfaced', () => assert.match(md, /return a Result not a throw/)),
+    t.test('anti-pattern surfaced', () => assert.match(md, /scratch\.js` was reverted/)),
+  ]);
+});
+
+test('lineDiff', (t) => Promise.all([
+  t.test('added line', () => {
+    const d = lineDiff('a\nb', 'a\nb\nc');
+    assert.deepEqual(d[d.length - 1], { type: 'added', line: 'c' });
+  }),
+  t.test('removed line', () => {
+    const d = lineDiff('a\nb\nc', 'a\nc');
+    assert.equal(d.some((x) => x.type === 'removed' && x.line === 'b'), true);
+  }),
+  t.test('identical is all common', () => {
+    const d = lineDiff('x\ny', 'x\ny');
+    assert.equal(d.every((x) => x.type === 'common'), true);
+  }),
+  t.test('summarize counts', () => {
+    const s = summarizeDiff(lineDiff('a\nb', 'a\nc\nd'));
+    assert.deepEqual(s, { added: 2, removed: 1, common: 1 });
+  }),
+  t.test('renderDiff marks +/-', () => {
+    const out = renderDiff(lineDiff('old', 'new'));
+    assert.match(out, /\+ new/);
+    assert.match(out, /- old/);
+  }),
+]));
 
 test('adapter: loadTranscript', (t) => {
   const sess = loadTranscript(join(here, 'fixtures', 'tiny.jsonl'));
