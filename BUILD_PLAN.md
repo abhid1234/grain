@@ -21,10 +21,11 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   system-injected text (length cap + marker skip). 76 tests. On real transcripts:
   180 raw → 32 real redirections after noise filtering.
 
-- [ ] **3 — Reverts / dead-ends signal.**
-  Find edits that a later edit or `git revert`/`checkout` undid — the paths the
-  agent tried and abandoned. These are anti-patterns worth writing down. This is
-  the signal only the *session* (not the final diff) can provide.
+- [x] **3 — Reverts / dead-ends signal.**
+  Finds edits undone by `git checkout`/`restore`/`reset --hard`/`stash`/`rm` — the
+  paths the agent tried and abandoned. Only the session carries these. Tracks
+  pending-vs-committed edits so committed work isn't counted. 100 tests. On real
+  transcripts: 378 reverts (removed 248×, bulk-reset 128×, git-checkout 2×).
 
 - [ ] **4 — Conventions signal.**
   From `Write`/`Edit` events, extract repeated code shapes: import styles, test

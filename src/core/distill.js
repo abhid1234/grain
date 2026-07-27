@@ -3,6 +3,7 @@
 
 import { extractCommands } from './signals/commands.js';
 import { extractCorrections, preferenceKey } from './signals/corrections.js';
+import { extractReverts } from './signals/reverts.js';
 
 /**
  * @typedef {Object} RepoContext
@@ -51,10 +52,22 @@ export function distill(sessions) {
     .filter((x) => x.n >= 2)
     .sort((a, b) => b.n - a.n || a.key.localeCompare(b.key));
 
+  // Reverts — paths the agent tried and abandoned.
+  const rev = [];
+  for (const s of sessions) rev.push(...extractReverts(s));
+  const revByReason = {};
+  for (const r of rev) revByReason[r.reason] = (revByReason[r.reason] || 0) + 1;
+  const fileMap = new Map();
+  for (const r of rev) fileMap.set(r.file, (fileMap.get(r.file) || 0) + 1);
+  const revFiles = [...fileMap.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([file, n]) => ({ file, n }));
+
   return {
     sessionCount: sessions.length,
     commandCount: all.length,
     commands,
     corrections: { count: corr.length, byKind, recurring, samples: corr.slice(0, 5) },
+    reverts: { count: rev.length, byReason: revByReason, files: revFiles },
   };
 }

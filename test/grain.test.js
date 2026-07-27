@@ -10,6 +10,7 @@ import { renderBrief } from '../src/core/render/brief.js';
 import { loadTranscript } from '../src/adapters/claudecode.js';
 import { redact, hasSecret } from '../src/core/redact.js';
 import { classifyCorrection, preferenceKey, extractCorrections, isNoise } from '../src/core/signals/corrections.js';
+import { classifyUndo, pathsIn, extractReverts } from '../src/core/signals/reverts.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -187,6 +188,70 @@ test('distill: corrections', (t) => {
     }),
     t.test('render shows the section', () =>
       assert.match(renderBrief(ctx), /What reviewers kept correcting/)),
+  ]);
+});
+
+test('classifyUndo', (t) => {
+  const cases = [
+    { input: 'git reset --hard', want: 'bulk-reset' },
+    { input: 'git checkout .', want: 'bulk-reset' },
+    { input: 'git stash', want: 'bulk-reset' },
+    { input: 'git revert abc1234', want: 'git-revert' },
+    { input: 'git restore src/x.js', want: 'git-restore' },
+    { input: 'git checkout -- src/x.js', want: 'git-checkout' },
+    { input: 'rm -f scratch.js', want: 'removed' },
+    { input: 'git stash list', want: null },
+    { input: 'npm test', want: null },
+  ];
+  return Promise.all(cases.map((c) =>
+    t.test(c.input, () => assert.equal(classifyUndo(c.input), c.want))));
+});
+
+test('pathsIn', (t) => Promise.all([
+  t.test('checkout path', () => assert.deepEqual(pathsIn('git checkout -- src/a.js'), ['src/a.js'])),
+  t.test('multiple rm paths', () => assert.deepEqual(pathsIn('rm -f a.js b.js'), ['a.js', 'b.js'])),
+  t.test('ignores refs and flags', () => assert.deepEqual(pathsIn('git checkout HEAD --force'), [])),
+]));
+
+test('extractReverts', (t) => {
+  const sess = session('r1', '/repo', [
+    ev.tool('Write', { file_path: 'src/a.js' }),
+    ev.tool('Edit', { file_path: 'src/b.js' }),
+    ev.tool('Bash', { command: 'git checkout -- src/a.js' }),   // a.js restored -> dead end
+    ev.tool('Write', { file_path: 'src/c.js' }),
+    ev.tool('Bash', { command: 'rm src/c.js' }),                // c.js removed -> dead end
+    ev.tool('Bash', { command: 'git commit -m wip' }),          // clears pending
+    ev.tool('Write', { file_path: 'src/e.js' }),
+    ev.tool('Bash', { command: 'git reset --hard' }),           // bulk: e.js abandoned
+  ]);
+  const got = extractReverts(sess);
+  return Promise.all([
+    t.test('finds three dead ends', () => assert.equal(got.length, 3)),
+    t.test('reasons in order', () =>
+      assert.deepEqual(got.map((r) => r.reason), ['git-checkout', 'removed', 'bulk-reset'])),
+    t.test('files in order', () =>
+      assert.deepEqual(got.map((r) => r.file), ['src/a.js', 'src/c.js', 'src/e.js'])),
+    t.test('rm of a non-session file is ignored', () => {
+      const s2 = session('r2', '/r', [ev.tool('Bash', { command: 'rm /tmp/unrelated.log' })]);
+      assert.equal(extractReverts(s2).length, 0);
+    }),
+  ]);
+});
+
+test('distill: reverts', (t) => {
+  const sess = session('dr', '/repo', [
+    ev.tool('Write', { file_path: 'a.js' }),
+    ev.tool('Bash', { command: 'git checkout -- a.js' }),
+    ev.tool('Write', { file_path: 'a.js' }),
+    ev.tool('Bash', { command: 'git checkout -- a.js' }),
+  ]);
+  const ctx = distill([sess]);
+  return Promise.all([
+    t.test('counts', () => assert.equal(ctx.reverts.count, 2)),
+    t.test('byReason', () => assert.deepEqual(ctx.reverts.byReason, { 'git-checkout': 2 })),
+    t.test('top file', () => assert.deepEqual(ctx.reverts.files[0], { file: 'a.js', n: 2 })),
+    t.test('render shows dead-ends section', () =>
+      assert.match(renderBrief(ctx), /Paths tried and abandoned/)),
   ]);
 });
 
