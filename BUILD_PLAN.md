@@ -57,9 +57,12 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   the model can never add/drop/change a rule. Impure call in `adapters/anthropic.js`
   returns null with no key, so Grain works with no key at all. 162 tests.
 
-- [ ] **8 — `grain audit` (provenance report).**
-  Who/what produced this repo: per-file agent-vs-human line share and the sessions
-  behind each region — the enterprise-facing view. Builds on the Entire adapter.
+- [x] **8 — `grain audit` (provenance report).**
+  `core/audit.js` + `render/audit.js`: per-file agent edit-op count, the sessions
+  that touched it, and — with `--entire` — the checkpoints/commits behind it.
+  `grain audit <target|--entire>`. Points at `entire why` for line-level share;
+  Grain adds session/commit provenance. Paths redacted. 175 tests. Real
+  transcripts: 472 files, 1313 edit ops.
 
 - [ ] **9 — Hardening + real output.**
   Redaction test corpus, PII options, CLI polish (`grain sources`), CI matrix,

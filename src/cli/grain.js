@@ -10,12 +10,15 @@ import { lineDiff, renderDiff } from '../core/diff.js';
 import { deriveRules } from '../core/rules.js';
 import { buildRulePrompt, reconcileRules } from '../core/llm.js';
 import { callAnthropic } from '../adapters/anthropic.js';
+import { auditFiles } from '../core/audit.js';
+import { renderAudit } from '../core/render/audit.js';
 
 const USAGE = `grain — turn agent sessions into your repo's house rules
 
 usage:
   grain scan   <transcript.jsonl | dir>            distill a repo brief from session logs
   grain scan   --entire [repo-dir]                 ...from Entire's captured checkpoints
+  grain audit  <transcript.jsonl | dir | --entire> per-file provenance (who/what produced it)
   grain agents <transcript.jsonl | dir> [--against AGENTS.md] [--llm]
                                                    propose an AGENTS.md (diff it against an existing one)
   grain agents --entire [repo-dir] [--against AGENTS.md] [--llm]
@@ -57,6 +60,12 @@ export async function main(argv) {
   if (cmd === 'scan') {
     if (!target && !argv.includes('--entire')) { process.stderr.write('grain: scan needs a path\n'); return 2; }
     process.stdout.write(renderBrief(distill(loadSessions(argv, target))));
+    return 0;
+  }
+
+  if (cmd === 'audit') {
+    if (!target && !argv.includes('--entire')) { process.stderr.write('grain: audit needs a path\n'); return 2; }
+    process.stdout.write(renderAudit(auditFiles(loadSessions(argv, target))));
     return 0;
   }
 

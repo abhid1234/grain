@@ -17,6 +17,8 @@ import { lineDiff, summarizeDiff, renderDiff } from '../src/core/diff.js';
 import { normalizeCheckpoint, parseCheckpointList, checkpointToSession } from '../src/adapters/entire.js';
 import { deriveRules } from '../src/core/rules.js';
 import { buildRulePrompt, reconcileRules } from '../src/core/llm.js';
+import { auditFiles } from '../src/core/audit.js';
+import { renderAudit } from '../src/core/render/audit.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -479,6 +481,46 @@ test('reconcileRules is cautious-only', (t) => {
 test('renderAgents honors phrased rules', () => {
   const md = renderAgents(RULES_CTX, { rules: [{ id: 'module', text: 'PHRASED-BY-LLM rule.' }] });
   assert.match(md, /PHRASED-BY-LLM rule\./);
+});
+
+test('auditFiles', (t) => {
+  const s1 = session('s1', '/repo', [
+    ev.tool('Write', { file_path: 'src/a.js' }),
+    ev.tool('Edit', { file_path: 'src/a.js' }),
+    ev.tool('Write', { file_path: 'src/b.js' }),
+    ev.tool('Bash', { command: 'node --test' }),  // not an edit
+  ], { source: 'entire', checkpoint: 'cp1', commit: 'abc1234def' });
+  const s2 = session('s2', '/repo', [
+    ev.tool('Edit', { file_path: 'src/a.js' }),
+  ]); // no provenance
+  const rep = auditFiles([s1, s2]);
+  const a = rep.find((f) => f.file === 'src/a.js');
+  return Promise.all([
+    t.test('ranks a.js first (most edits)', () => assert.equal(rep[0].file, 'src/a.js')),
+    t.test('counts edit ops (ignores Bash)', () => assert.equal(a.edits, 3)),
+    t.test('tracks both sessions', () => assert.deepEqual(a.sessions.sort(), ['s1', 's2'])),
+    t.test('carries commit provenance', () => assert.deepEqual(a.commits, ['abc1234def'])),
+    t.test('b.js counted once', () => assert.equal(rep.find((f) => f.file === 'src/b.js').edits, 1)),
+  ]);
+});
+
+test('renderAudit', (t) => {
+  const rep = auditFiles([
+    session('s1', '/r', [ev.tool('Write', { file_path: 'x.js' })], { source: 'entire', checkpoint: 'c', commit: 'deadbeef99' }),
+  ]);
+  const out = renderAudit(rep);
+  return Promise.all([
+    t.test('has heading', () => assert.match(out, /Provenance audit/)),
+    t.test('table row for the file', () => assert.match(out, /`x\.js`/)),
+    t.test('short commit shown', () => assert.match(out, /deadbee/)),
+    t.test('points at entire why', () => assert.match(out, /entire why/)),
+    t.test('empty is handled', () => assert.match(renderAudit([]), /No agent file edits/)),
+  ]);
+});
+
+test('auditFiles redacts file paths', () => {
+  const s = session('s', '/r', [ev.tool('Write', { file_path: 'secrets/ghp_abcdefghijklmnopqrstuvwxyz0123456789.js' })]);
+  assert.doesNotMatch(auditFiles([s])[0].file, /ghp_abcdef/);
 });
 
 test('adapter: loadTranscript', (t) => {
