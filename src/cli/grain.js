@@ -7,15 +7,21 @@ import { distill } from '../core/distill.js';
 import { renderBrief } from '../core/render/brief.js';
 import { renderAgents } from '../core/render/agents.js';
 import { lineDiff, renderDiff } from '../core/diff.js';
+import { deriveRules } from '../core/rules.js';
+import { buildRulePrompt, reconcileRules } from '../core/llm.js';
+import { callAnthropic } from '../adapters/anthropic.js';
 
 const USAGE = `grain — turn agent sessions into your repo's house rules
 
 usage:
   grain scan   <transcript.jsonl | dir>            distill a repo brief from session logs
   grain scan   --entire [repo-dir]                 ...from Entire's captured checkpoints
-  grain agents <transcript.jsonl | dir> [--against AGENTS.md]
+  grain agents <transcript.jsonl | dir> [--against AGENTS.md] [--llm]
                                                    propose an AGENTS.md (diff it against an existing one)
-  grain agents --entire [repo-dir] [--against AGENTS.md]
+  grain agents --entire [repo-dir] [--against AGENTS.md] [--llm]
+
+  --llm    rephrase the deterministic rules with Claude (cautious-only; needs
+           ANTHROPIC_API_KEY; falls back to deterministic rules without one)
 
 examples:
   grain scan   ~/.claude/projects/-Users-me-Developer-myrepo/
@@ -32,7 +38,20 @@ function loadSessions(argv, target) {
   return loadAll(target);
 }
 
-export function main(argv) {
+// Optionally rephrase the deterministic rules via the LLM (cautious-only).
+// Falls back to the deterministic rules when there's no key or the call fails.
+async function ruleSet(ctx, useLlm) {
+  const rules = deriveRules(ctx);
+  if (!useLlm || !rules.length) return rules;
+  const text = await callAnthropic(buildRulePrompt(rules));
+  if (!text) {
+    process.stderr.write('grain: --llm unavailable (no ANTHROPIC_API_KEY or call failed); using deterministic rules.\n');
+    return rules;
+  }
+  return reconcileRules(rules, text);
+}
+
+export async function main(argv) {
   const [cmd, target] = argv;
 
   if (cmd === 'scan') {
@@ -44,7 +63,8 @@ export function main(argv) {
   if (cmd === 'agents') {
     if (!target && !argv.includes('--entire')) { process.stderr.write('grain: agents needs a path\n'); return 2; }
     const ctx = distill(loadSessions(argv, target));
-    const proposed = renderAgents(ctx);
+    const rules = await ruleSet(ctx, argv.includes('--llm'));
+    const proposed = renderAgents(ctx, { rules });
     const ai = argv.indexOf('--against');
     if (ai >= 0 && argv[ai + 1]) {
       let existing = '';

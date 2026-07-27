@@ -49,10 +49,13 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   --entire [repo]`. Degrades gracefully to 0 sessions when no checkpoints exist.
   147 tests. (Per-rule provenance deepens in iteration 8 — grain audit.)
 
-- [ ] **7 — Optional LLM phrasing layer.**
-  `grain scan --llm` uses Claude to turn deterministic signals into clean prose
-  rules. Cautious-only: it may phrase or merge, never invent. Works with no key
-  (deterministic templates are the floor). Reuse the Owl/Sentinel llm seam.
+- [x] **7 — Optional LLM phrasing layer.**
+  `grain agents --llm` rephrases the deterministic rules with Claude. Cautious-only
+  by construction: `core/rules.js` derives rules with stable ids; `core/llm.js`
+  builds the prompt and `reconcileRules` accepts a phrasing only for a known id,
+  redacts it, and falls back to the deterministic text on anything unexpected —
+  the model can never add/drop/change a rule. Impure call in `adapters/anthropic.js`
+  returns null with no key, so Grain works with no key at all. 162 tests.
 
 - [ ] **8 — `grain audit` (provenance report).**
   Who/what produced this repo: per-file agent-vs-human line share and the sessions

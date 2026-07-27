@@ -2,12 +2,14 @@
 // turned into imperative house rules an agent can follow. Pure.
 
 import { redact } from '../redact.js';
+import { deriveRules } from '../rules.js';
 
 /**
  * @param {import('../distill.js').RepoContext} ctx
+ * @param {{rules?: {id:string,text:string}[]}} [opts]  optional pre-phrased rules (LLM layer)
  * @returns {string}
  */
-export function renderAgents(ctx) {
+export function renderAgents(ctx, opts = {}) {
   const L = [];
   L.push('# AGENTS.md — proposed by Grain');
   L.push('');
@@ -30,24 +32,11 @@ export function renderAgents(ctx) {
     L.push('');
   }
 
-  // Conventions -> imperative rules
-  const c = ctx.conventions || {};
-  const dom = (dim) => c[dim]?.dominant?.value;
-  const rules = [];
-  if (dom('module')) rules.push(dom('module') === 'esm'
-    ? 'Use ESM `import`/`export`, not CommonJS `require`.'
-    : 'Use CommonJS `require`/`module.exports`.');
-  if (dom('test-runner') === 'node:test') rules.push('Write tests with the built-in `node:test` runner.');
-  if (dom('assert') === 'node:assert') rules.push('Assert with `node:assert/strict`.');
-  if (dom('test-style') === 'table-driven') rules.push('Tests are table-driven: a `cases` array with one assertion loop.');
-  if (dom('errors')) rules.push(dom('errors') === 'result-return'
-    ? 'Return a `Result` (`ok`/`err`); do not throw from public functions.'
-    : 'Raise errors with `throw new Error(...)`.');
-  if (dom('quotes')) rules.push(`Use ${dom('quotes')} quotes.`);
-  if (dom('indent')) rules.push(`Indent with ${dom('indent').replace('-', ' ')}s.`);
+  // Conventions -> imperative rules (deterministic, optionally LLM-rephrased)
+  const rules = opts.rules || deriveRules(ctx);
   if (rules.length) {
     L.push('## Conventions');
-    for (const r of rules) L.push(`- ${r}`);
+    for (const r of rules) L.push(`- ${redact(r.text)}`);
     L.push('');
   }
 

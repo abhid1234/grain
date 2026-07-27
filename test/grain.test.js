@@ -15,6 +15,8 @@ import { observe, extractConventions } from '../src/core/signals/conventions.js'
 import { renderAgents } from '../src/core/render/agents.js';
 import { lineDiff, summarizeDiff, renderDiff } from '../src/core/diff.js';
 import { normalizeCheckpoint, parseCheckpointList, checkpointToSession } from '../src/adapters/entire.js';
+import { deriveRules } from '../src/core/rules.js';
+import { buildRulePrompt, reconcileRules } from '../src/core/llm.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -416,6 +418,67 @@ test('entire: checkpointToSession carries provenance', (t) => {
       assert.match(renderBrief(ctx), /Provenance: 1 Entire checkpoint/);
     }),
   ]);
+});
+
+const RULES_CTX = {
+  conventions: {
+    module: { dominant: { value: 'esm' } },
+    'test-runner': { dominant: { value: 'node:test' } },
+    errors: { dominant: { value: 'result-return' } },
+  },
+};
+
+test('deriveRules', (t) => {
+  const rules = deriveRules(RULES_CTX);
+  const ids = rules.map((r) => r.id);
+  return Promise.all([
+    t.test('has stable ids', () => assert.deepEqual(ids, ['module', 'test-runner', 'errors'])),
+    t.test('module text', () => assert.match(rules[0].text, /Use ESM/)),
+    t.test('empty ctx -> no rules', () => assert.deepEqual(deriveRules({}), [])),
+  ]);
+});
+
+test('buildRulePrompt', (t) => {
+  const p = buildRulePrompt(deriveRules(RULES_CTX));
+  return Promise.all([
+    t.test('forbids inventing rules', () => assert.match(p, /MUST NOT add new rules/)),
+    t.test('lists the ids', () => assert.match(p, /module, test-runner, errors/)),
+  ]);
+});
+
+test('reconcileRules is cautious-only', (t) => {
+  const rules = deriveRules(RULES_CTX);
+  return Promise.all([
+    t.test('accepts a rephrase for a known id', () => {
+      const out = reconcileRules(rules, '{"module":"Prefer ESM imports."}');
+      assert.equal(out.find((r) => r.id === 'module').text, 'Prefer ESM imports.');
+    }),
+    t.test('ignores invented ids (never adds rules)', () => {
+      const out = reconcileRules(rules, '{"module":"x","totally-new":"do a backflip"}');
+      assert.equal(out.length, rules.length);
+      assert.equal(out.some((r) => r.id === 'totally-new'), false);
+    }),
+    t.test('garbage -> deterministic floor', () => {
+      assert.deepEqual(reconcileRules(rules, 'not json at all'), rules);
+    }),
+    t.test('empty phrasing -> keeps deterministic', () => {
+      const out = reconcileRules(rules, '{"module":""}');
+      assert.equal(out.find((r) => r.id === 'module').text, rules.find((r) => r.id === 'module').text);
+    }),
+    t.test('redacts a leaked secret in the phrasing', () => {
+      const out = reconcileRules(rules, '{"module":"Use ESM; never commit ghp_abcdefghijklmnopqrstuvwxyz0123456789"}');
+      assert.doesNotMatch(out.find((r) => r.id === 'module').text, /ghp_abcdef/);
+    }),
+    t.test('fenced JSON is extracted', () => {
+      const out = reconcileRules(rules, 'Here you go:\n```json\n{"module":"Prefer ESM."}\n```');
+      assert.equal(out.find((r) => r.id === 'module').text, 'Prefer ESM.');
+    }),
+  ]);
+});
+
+test('renderAgents honors phrased rules', () => {
+  const md = renderAgents(RULES_CTX, { rules: [{ id: 'module', text: 'PHRASED-BY-LLM rule.' }] });
+  assert.match(md, /PHRASED-BY-LLM rule\./);
 });
 
 test('adapter: loadTranscript', (t) => {
