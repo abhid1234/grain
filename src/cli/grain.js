@@ -1,6 +1,8 @@
 // Grain CLI. Thin orchestration over the pure core + adapters.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { loadAll } from '../adapters/claudecode.js';
 import { loadFromEntire } from '../adapters/entire.js';
 import { distill } from '../core/distill.js';
@@ -19,6 +21,7 @@ usage:
   grain scan   <transcript.jsonl | dir>            distill a repo brief from session logs
   grain scan   --entire [repo-dir]                 ...from Entire's captured checkpoints
   grain audit  <transcript.jsonl | dir | --entire> per-file provenance (who/what produced it)
+  grain sources                                    list available Claude Code transcript dirs
   grain agents <transcript.jsonl | dir> [--against AGENTS.md] [--llm]
                                                    propose an AGENTS.md (diff it against an existing one)
   grain agents --entire [repo-dir] [--against AGENTS.md] [--llm]
@@ -60,6 +63,26 @@ export async function main(argv) {
   if (cmd === 'scan') {
     if (!target && !argv.includes('--entire')) { process.stderr.write('grain: scan needs a path\n'); return 2; }
     process.stdout.write(renderBrief(distill(loadSessions(argv, target))));
+    return 0;
+  }
+
+  if (cmd === 'sources') {
+    const base = join(homedir(), '.claude', 'projects');
+    let dirs = [];
+    try { dirs = readdirSync(base, { withFileTypes: true }).filter((d) => d.isDirectory()); } catch { dirs = []; }
+    const out = ['# Grain sources — Claude Code transcript directories', ''];
+    if (!dirs.length) {
+      out.push(`_None found under ${base}._`);
+    } else {
+      for (const d of dirs) {
+        let n = 0;
+        try { n = readdirSync(join(base, d.name)).filter((f) => f.endsWith('.jsonl')).length; } catch { n = 0; }
+        if (n) out.push(`- ${d.name}  ·  ${n} transcript(s)`);
+      }
+      out.push('', '_Scan one with:_ `grain scan ' + base + '/<dir>/`');
+      out.push('_Or read Entire\'s captured checkpoints:_ `grain scan --entire <repo>`');
+    }
+    process.stdout.write(out.join('\n') + '\n');
     return 0;
   }
 

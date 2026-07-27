@@ -18,12 +18,14 @@ const CLASSIFIERS = [
 ];
 
 const ENV_ASSIGN = /^[A-Za-z_][A-Za-z0-9_]*=/;
-const NOISE = /^(cd|export|source|set|unset|echo|:)\b/;
+// Shell scaffolding, loop/heredoc keywords, and heredoc terminators (all-caps
+// markers like EOF / JS / PY) are not "commands the repo runs on".
+const NOISE = /^(cd|export|source|set|unset|echo|printf|:|do|done|then|else|elif|fi|for|while|until|if|case|esac|cat|function|return|[A-Z][A-Z0-9_]+)\b/;
 
-/** Split a compound command into its individual segments. */
+/** Split a compound command into its individual segments (including newlines). */
 function segments(command) {
   return String(command)
-    .split(/&&|\|\||;|\|/)
+    .split(/&&|\|\||;|\||\n/)
     .map((s) => s.trim())
     .filter(Boolean);
 }

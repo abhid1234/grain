@@ -29,6 +29,8 @@ export function redact(text) {
   let s = String(text ?? '');
   s = s.replace(KV, (_m, name, sep) => `${name}${sep}<redacted:secret>`);
   for (const [re, label] of PATTERNS) s = s.replace(re, `<redacted:${label}>`);
+  // Collapse home directories to ~ so output doesn't leak local usernames/layout.
+  s = s.replace(/\/(?:Users|home)\/[^/\s'"]+/g, '~');
   return s;
 }
 

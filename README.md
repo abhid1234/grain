@@ -29,6 +29,16 @@ today.)
 ## Try it
 
 ```bash
+grain sources                       # list your Claude Code transcript dirs
+grain scan   <dir|--entire .>       # distill a repo brief from session logs
+grain agents <dir|--entire .>       # propose an AGENTS.md  (add --llm to rephrase, --against to diff)
+grain audit  <dir|--entire .>       # per-file provenance: who/what produced the repo
+```
+
+See [`examples/AGENTS.sample.md`](examples/AGENTS.sample.md) for real, unedited
+`grain agents` output (secrets and home paths auto-redacted).
+
+```bash
 # Distill a brief from a repo's captured sessions
 npx grain scan ~/.claude/projects/<your-encoded-repo-path>/
 ```

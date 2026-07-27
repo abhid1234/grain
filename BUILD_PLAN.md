@@ -64,10 +64,12 @@ table-driven `node:test`. See [AGENTS.md](AGENTS.md).
   Grain adds session/commit provenance. Paths redacted. 175 tests. Real
   transcripts: 472 files, 1313 edit ops.
 
-- [ ] **9 — Hardening + real output.**
-  Redaction test corpus, PII options, CLI polish (`grain sources`), CI matrix,
-  examples. Run grain on `purse` + `sentinel` and commit a real sample proposed
-  `AGENTS.md` under `examples/`.
+- [x] **9 — Hardening + real output.**
+  Command-noise cleanup (newline split + heredoc/loop-keyword filter — kills the
+  `do cd`/`EOF node` junk). Redaction hardened: home paths collapse to `~`, plus a
+  6-shape secret corpus test. New `grain sources` command; README documents all
+  commands. Committed real `grain agents` output at `examples/AGENTS.sample.md`
+  (0 secrets, 0 raw home paths). 190 tests. Real commands: `node --test` 122×.
 
 - [ ] **10 — Launch.**
   README polish, a short write-up / post draft (tagging Entire's founder), a demo

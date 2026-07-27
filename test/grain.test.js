@@ -102,6 +102,25 @@ test('redact', (t) => {
   })));
 });
 
+test('redact corpus (known secret shapes never survive)', (t) => {
+  const cases = [
+    { name: 'aws key', in: 'AKIAIOSFODNN7EXAMPLE1', gone: /AKIA/ },
+    { name: 'google api key', in: 'AIzaSyA1234567890abcdefghijklmnopqrstuvz', gone: /AIzaSy/ },
+    { name: 'slack token', in: 'xoxb-1234567890-abcdefghijkl', gone: /xoxb-1234/ },
+    { name: 'jwt', in: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N', gone: /eyJhbGci/ },
+    { name: 'telegram bot token', in: '1234509876:AAfakefakefakefakefakefakefakefake1', gone: /1234509876:AA/ },
+    { name: 'password kv', in: 'PASSWORD=hunter2hunter2', gone: /hunter2/ },
+  ];
+  return Promise.all(cases.map((c) =>
+    t.test(c.name, () => assert.doesNotMatch(redact(c.in), c.gone))));
+});
+
+test('redact collapses home paths to ~', (t) => Promise.all([
+  t.test('mac', () => assert.equal(redact('/Users/abhijitdas/Developer/x.js'), '~/Developer/x.js')),
+  t.test('linux', () => assert.equal(redact('/home/ci/build/y.js'), '~/build/y.js')),
+  t.test('leaves other paths', () => assert.equal(redact('/repo/src/z.js'), '/repo/src/z.js')),
+]));
+
 test('hasSecret', (t) => Promise.all([
   t.test('detects', () => assert.equal(hasSecret('key=ghp_abcdefghijklmnopqrstuvwxyz0123456789'), true)),
   t.test('clean', () => assert.equal(hasSecret('just a normal command'), false)),
@@ -111,6 +130,12 @@ test('commands: meaningful segment beats cd/export prefix', (t) => Promise.all([
   t.test('skips cd', () => assert.equal(canonical('cd ~/repo && node --test'), 'node --test')),
   t.test('skips export secret', () => assert.equal(canonical('export TOKEN="vcp_aaaaaaaaaaaaaaaaaaaaaaaa" && vercel deploy'), 'vercel deploy')),
   t.test('classifies through cd', () => assert.equal(classify('cd ~/repo && npm test'), 'test')),
+]));
+
+test('commands: heredoc/loop noise is dropped', (t) => Promise.all([
+  t.test('for-loop body', () => assert.equal(canonical('for f in a b; do cd $f && node --test; done'), 'node --test')),
+  t.test('heredoc terminator skipped', () => assert.equal(canonical("cat <<'EOF'\nhello\nEOF\nnode run.js"), 'node run.js')),
+  t.test('classifies past heredoc', () => assert.equal(classify("cat <<'EOF'\nx\nEOF\nnpm test"), 'test')),
 ]));
 
 test('classifyCorrection', (t) => {
