@@ -1,0 +1,130 @@
+<!doctype html><html><head><meta charset="utf-8">
+<title>grain — launch posts</title>
+<style>
+ :root{--bg:#0d1117;--panel:#161b22;--line:#26303b;--ink:#e6edf3;--mut:#8b98a5;--acc:#e8b04b;--grn:#5bf59a}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--ink);
+      font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      padding:44px 22px 90px}
+ .wrap{max-width:760px;margin:0 auto}
+ h1{font-size:32px;margin:0 0 6px;letter-spacing:-.02em}
+ .sub{color:var(--mut);margin:0 0 26px}
+ .links{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+        padding:16px 18px;margin-bottom:30px;font-size:15px}
+ .links a{color:var(--acc);text-decoration:none}
+ .links div{margin:5px 0}
+ .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+       padding:20px 22px;margin-bottom:22px}
+ .hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+ h2{font-size:19px;margin:0 0 4px}
+ .meta{color:var(--mut);font-size:13px;font-family:ui-monospace,Menlo,monospace}
+ .note{color:var(--mut);font-size:14px;margin:6px 0 0}
+ pre{white-space:pre-wrap;word-wrap:break-word;background:#0b1014;border:1px solid var(--line);
+     border-radius:10px;padding:16px 18px;margin:14px 0 12px;font-size:15px;line-height:1.62;
+     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#dbe6f0}
+ button{background:var(--acc);color:#20140a;border:0;border-radius:9px;padding:10px 20px;
+        font-size:14px;font-weight:700;cursor:pointer}
+ button.done{background:var(--grn)}
+ .foot{color:var(--mut);font-size:13px;text-align:center;margin-top:34px}
+</style></head><body><div class="wrap">
+
+<h1>grain — launch posts 🌾</h1>
+<p class="sub">Click Copy, paste, ship. Attach <code>grain-demo-v3.mp4</code> to the LinkedIn post.</p>
+
+<div class="links">
+  <div><strong>Blog (live):</strong> <a href="https://abhid.substack.com/p/every-coding-agent-i-use-is-brilliant">https://abhid.substack.com/p/every-coding-agent-i-use-is-brilliant</a></div>
+  <div><strong>Repo:</strong> <a href="https://github.com/abhid1234/grain">https://github.com/abhid1234/grain</a></div>
+  <div><strong>Video:</strong> <code>grain/_video/grain-demo-v3.mp4</code> · poster <code>grain-demo-v3-poster.jpg</code></div>
+  <div style="margin-top:10px;color:var(--mut)">Before posting: replace <code>@Entire</code> with their actual handle.</div>
+</div>
+
+<div class="card">
+  <div class="hd"><h2>LinkedIn</h2><span class="meta">153 words · 921 chars</span></div>
+  <p class="note">Attach the video. Put nothing else in the body — links at the end are fine on LinkedIn now.</p>
+  <pre id="c0">Every coding agent I use is brilliant and completely amnesiac.
+
+It writes code, I correct it, we go back and forth. Then the PR merges and that whole conversation is gone. Next session it starts from zero and I teach it the same things again.
+
+Entire (entire.io) keeps it. Every agent session gets stored in your repo, linked to the commit it produced. It's not a GitHub replacement — your repo stays where it is and Entire mirrors it across regions.
+
+I got off their waitlist last week. Ran one session on a small library, then asked the file who wrote it:
+
+309 lines · 7% AI (21) · 93% human
+
+Twenty-one lines, each traceable to the prompt behind it.
+
+So I built grain on top. It reads those sessions and writes your repo's house rules — the test command, the conventions, the things you keep correcting. Open source.
+
+Code: github.com/abhid1234/grain
+Writeup: abhid.substack.com/p/every-coding-agent-i-use-is-brilliant</pre>
+  <button onclick="cp('c0',this)">Copy</button>
+</div>
+<div class="card">
+  <div class="hd"><h2>X — single post</h2><span class="meta">53 words · 314 chars</span></div>
+  
+  <pre id="c1">Every coding agent I use is brilliant and completely amnesiac.
+
+The PR merges and the conversation that produced it is deleted.
+
+@Entire keeps it — every session linked to its commit:
+
+entire why src/money.js
+→ 309 lines · 7% AI (21) · 93% human
+
+So I built grain to read those sessions:
+github.com/abhid1234/grain</pre>
+  <button onclick="cp('c1',this)">Copy</button>
+</div>
+<div class="card">
+  <div class="hd"><h2>X thread — 1/4</h2><span class="meta">29 words · 170 chars</span></div>
+  
+  <pre id="c2">Every coding agent I use is brilliant and completely amnesiac.
+
+It writes code, I correct it, the PR merges, and that conversation is gone. Next session starts from zero.</pre>
+  <button onclick="cp('c2',this)">Copy</button>
+</div>
+<div class="card">
+  <div class="hd"><h2>X thread — 2/4</h2><span class="meta">39 words · 234 chars</span></div>
+  
+  <pre id="c3">@Entire keeps it. Every agent session stored in your repo, linked to the commit it produced.
+
+Not a GitHub replacement — your repo stays put, Entire mirrors it across regions so clones carry the session history at shallow-clone speed.</pre>
+  <button onclick="cp('c3',this)">Copy</button>
+</div>
+<div class="card">
+  <div class="hd"><h2>X thread — 3/4</h2><span class="meta">36 words · 182 chars</span></div>
+  
+  <pre id="c4">Ran one session on a small library, then asked the file who wrote it:
+
+entire why src/money.js
+→ 309 lines · 7% AI (21) · 93% human
+
+21 lines, each traceable to the prompt behind it.</pre>
+  <button onclick="cp('c4',this)">Copy</button>
+</div>
+<div class="card">
+  <div class="hd"><h2>X thread — 4/4</h2><span class="meta">29 words · 255 chars</span></div>
+  
+  <pre id="c5">So I built grain: it reads those captured sessions and writes your repo's house rules — test command, conventions, the things you keep correcting.
+
+Open source: github.com/abhid1234/grain
+Writeup: abhid.substack.com/p/every-coding-agent-i-use-is-brilliant</pre>
+  <button onclick="cp('c5',this)">Copy</button>
+</div>
+<div class="card">
+  <div class="hd"><h2>First comment (under your own LinkedIn post)</h2><span class="meta">40 words · 210 chars</span></div>
+  <p class="note">Post this yourself a minute after publishing; it lifts reach and adds the sharpest point.</p>
+  <pre id="c6">The bit I keep coming back to: a diff only shows what survived. The approach you tried and backed out of exists nowhere in git history — only in the session. That's the signal grain reads that nothing else can.</pre>
+  <button onclick="cp('c6',this)">Copy</button>
+</div>
+
+<p class="foot">grain 🌾 · built on Entire · 2026</p>
+</div>
+<script>
+function cp(id, btn){
+  navigator.clipboard.writeText(document.getElementById(id).innerText).then(()=>{
+    const t = btn.textContent; btn.textContent = 'Copied ✓'; btn.classList.add('done');
+    setTimeout(()=>{ btn.textContent = t; btn.classList.remove('done'); }, 1600);
+  });
+}
+</script></body></html>

@@ -3,6 +3,8 @@
 *How I got early access to Entire, what I found in the first week, and the tool I
 built on top of it.*
 
+*Published at [abhid.substack.com](https://abhid.substack.com/p/every-coding-agent-i-use-is-brilliant).*
+
 ---
 
 ## The problem

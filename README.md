@@ -2,6 +2,8 @@
 
 **Turn your agents' sessions into your repo's house rules.**
 
+📖 **Read the writeup:** [Every coding agent I use is brilliant — and completely amnesiac](https://abhid.substack.com/p/every-coding-agent-i-use-is-brilliant)
+
 Every coding agent is brilliant and completely amnesiac. It writes the code, you
 correct it, you steer it away from the three things that don't work in this repo —
 then the PR merges and that whole conversation disappears. All that survives is the
