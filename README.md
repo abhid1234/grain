@@ -2,6 +2,11 @@
 
 **Turn your agents' sessions into your repo's house rules.**
 
+Every coding agent is brilliant and completely amnesiac. It writes the code, you
+correct it, you steer it away from the three things that don't work in this repo —
+then the PR merges and that whole conversation disappears. All that survives is the
+diff, and the next session starts from zero.
+
 An AI coding agent is only as good as the project-specific context it's given.
 `AGENTS.md` and skills carry that context — but writing them is guesswork, and you
 do it *before* you've watched an agent actually work in the repo.

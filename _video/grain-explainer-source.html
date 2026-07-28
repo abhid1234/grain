@@ -1,0 +1,420 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#0b0f14}canvas{display:block}
+</style></head><body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const cv=document.getElementById('c'), x=cv.getContext('2d');
+const W=1920,H=1080;
+const INK='#eef2f7', MUT='#93a1b5', DIM='#5b6779';
+const AMBER='#e0a441', GREEN='#5fc08a', BLUE='#6f9dea', RED='#e07070';
+const SANS='-apple-system,"Segoe UI",Roboto,sans-serif';
+const MONO='ui-monospace,Menlo,Monaco,monospace';
+
+function rr(px,py,w,h,r){x.beginPath();x.moveTo(px+r,py);x.arcTo(px+w,py,px+w,py+h,r);x.arcTo(px+w,py+h,px,py+h,r);x.arcTo(px,py+h,px,py,r);x.arcTo(px,py,px+w,py,r);x.closePath();}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const ease=(p)=>p<0?0:p>1?1:1-Math.pow(1-p,3);
+// fade-in helper: progress of an element appearing at time `at` over `dur`
+const fin=(t,at,dur=0.5)=>ease((t-at)/dur);
+
+function bg(){
+  let g=x.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#101722');g.addColorStop(0.5,'#0c1119');g.addColorStop(1,'#0a0e14');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W*0.85,H*0.1,0,W*0.85,H*0.1,700);
+  g.addColorStop(0,'rgba(224,164,65,0.10)');g.addColorStop(1,'rgba(224,164,65,0)');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W*0.1,H*0.95,0,W*0.1,H*0.95,700);
+  g.addColorStop(0,'rgba(111,157,234,0.09)');g.addColorStop(1,'rgba(111,157,234,0)');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+}
+function card(px,py,w,h,{a=1,accent=null,fill='rgba(255,255,255,0.045)'}={}){
+  x.save();x.globalAlpha*=a;
+  x.shadowColor='rgba(0,0,0,0.4)';x.shadowBlur=30;x.shadowOffsetY=12;
+  rr(px,py,w,h,16);x.fillStyle=fill;x.fill();x.shadowColor='transparent';
+  rr(px,py,w,h,16);x.lineWidth=1.4;x.strokeStyle=accent||'rgba(255,255,255,0.13)';x.stroke();
+  x.restore();
+}
+function text(s,px,py,{size=30,color=INK,font=SANS,weight=500,align='left',a=1}={}){
+  x.save();x.globalAlpha*=a;x.fillStyle=color;x.textAlign=align;x.textBaseline='alphabetic';
+  x.font=`${weight} ${size}px ${font}`;x.fillText(s,px,py);x.restore();
+}
+function wrap(s,px,py,maxw,{size=30,color=MUT,lh=42,align='left',a=1,weight=500,font=SANS}={}){
+  x.save();x.font=`${weight} ${size}px ${font}`;
+  const words=String(s).split(' ');let line='',yy=py;
+  for(const w of words){const t=line?line+' '+w:w;
+    if(x.measureText(t).width>maxw&&line){text(line,px,yy,{size,color,align,a,weight,font});line=w;yy+=lh;}
+    else line=t;}
+  if(line)text(line,px,yy,{size,color,align,a,weight,font});
+  x.restore();return yy+lh;
+}
+function eyebrow(s,px,py,{a=1,color=AMBER}={}){
+  x.save();x.globalAlpha*=a;x.fillStyle=color;x.textAlign='left';
+  x.font=`700 20px ${MONO}`;x.fillText(s.split('').join(' ').toUpperCase(),px,py);x.restore();
+}
+// terminal window
+function term(px,py,w,h,title,{a=1}={}){
+  x.save();x.globalAlpha*=a;
+  x.shadowColor='rgba(0,0,0,0.55)';x.shadowBlur=44;x.shadowOffsetY=18;
+  rr(px,py,w,h,14);x.fillStyle='#0a0d13';x.fill();x.shadowColor='transparent';
+  rr(px,py,w,h,14);x.lineWidth=1.4;x.strokeStyle='rgba(255,255,255,0.12)';x.stroke();
+  // title bar
+  x.save();rr(px,py,w,46,14);x.clip();x.fillStyle='rgba(255,255,255,0.05)';x.fillRect(px,py,w,46);x.restore();
+  const dots=[['#ff5f57',0],['#febc2e',1],['#28c840',2]];
+  for(const [c,i] of dots){x.beginPath();x.arc(px+26+i*22,py+23,6.5,0,7);x.fillStyle=c;x.fill();}
+  text(title,px+w/2,py+30,{size:18,color:DIM,font:MONO,align:'center'});
+  x.restore();
+}
+// typed lines inside a terminal; each entry {t:'text',c:color,i:indent}
+function termLines(lines,px,py,{a=1,size=23,lh=34}={}){
+  let yy=py;
+  for(const L of lines){
+    if(L.t!=='') text(L.t,px+(L.i||0),yy,{size,color:L.c||INK,font:MONO,a:a*(L.a??1),weight:L.w||500});
+    yy+=(L.lh||lh);
+  }
+  return yy;
+}
+function arrow(x1,y1,x2,y2,{a=1,color=DIM,width=2.5,head=12}={}){
+  x.save();x.globalAlpha*=a;x.strokeStyle=color;x.fillStyle=color;x.lineWidth=width;
+  x.beginPath();x.moveTo(x1,y1);x.lineTo(x2,y2);x.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1);
+  x.beginPath();x.moveTo(x2,y2);
+  x.lineTo(x2-head*Math.cos(ang-0.4),y2-head*Math.sin(ang-0.4));
+  x.lineTo(x2-head*Math.cos(ang+0.4),y2-head*Math.sin(ang+0.4));
+  x.closePath();x.fill();x.restore();
+}
+function grainMark(cx,cy,s,{a=1}={}){
+  x.save();x.globalAlpha*=a;x.translate(cx,cy);
+  const g=x.createRadialGradient(0,0,0,0,0,s*1.4);
+  g.addColorStop(0,'rgba(224,164,65,0.25)');g.addColorStop(1,'rgba(224,164,65,0)');
+  x.fillStyle=g;x.fillRect(-s*1.5,-s*1.5,s*3,s*3);
+  // wheat stalk
+  x.strokeStyle=AMBER;x.lineWidth=s*0.09;x.lineCap='round';
+  x.beginPath();x.moveTo(0,s*0.55);x.lineTo(0,-s*0.5);x.stroke();
+  for(let i=0;i<4;i++){
+    const yy=-s*0.42+i*s*0.24;
+    x.beginPath();x.moveTo(0,yy+s*0.12);x.quadraticCurveTo(-s*0.34,yy+s*0.02,-s*0.30,yy-s*0.16);x.stroke();
+    x.beginPath();x.moveTo(0,yy+s*0.12);x.quadraticCurveTo(s*0.34,yy+s*0.02,s*0.30,yy-s*0.16);x.stroke();
+  }
+  x.restore();
+}
+
+// ---------------- scenes ----------------
+// timings (seconds)
+const S={p1:0.4,p2:13.6,p3:25.9,p4:36.1,p5:47.2,p6:64.8,p7:80.3,p8:95.6,p9:106.5};
+const DUR=121;
+
+function sceneProblem(t){
+  const u=t-S.p1;
+  eyebrow('the problem',150,150,{a:fin(u,0.2)});
+  x.save();x.globalAlpha=fin(u,0.5);
+  text('Your agent knows how to code.',150,250,{size:64,weight:800});
+  x.restore();
+  x.save();x.globalAlpha=fin(u,1.4);
+  text("It doesn't know ",150,340,{size:64,weight:800,color:MUT});
+  const w=x.measureText("It doesn't know ").width;
+  text('your repo.',150+w,340,{size:64,weight:800,color:AMBER});
+  x.restore();
+
+  const items=[
+    ['How do I run the tests here?','node --test? npm test? something else?'],
+    ['What are the conventions?','ESM or CJS. Throw, or return a result.'],
+    ['What did the team already reject?','the approaches that got reverted last week'],
+  ];
+  items.forEach(([q,sub],i)=>{
+    const a=fin(u,2.6+i*1.5);
+    const yy=460+i*140;
+    card(150,yy,1180,110,{a});
+    text('?',195,yy+72,{size:44,weight:800,color:AMBER,a});
+    text(q,250,yy+50,{size:32,weight:700,a});
+    text(sub,250,yy+88,{size:24,color:DIM,a});
+  });
+  const a=fin(u,8.2);
+  wrap('Every new session, it starts from zero.',150,970,1300,{size:34,color:MUT,a,weight:600});
+}
+
+function sceneThrown(t){
+  const u=t-S.p2;
+  eyebrow('what happens today',150,150,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.3);
+  text('You teach it. Then you delete the lesson.',150,250,{size:60,weight:800});
+  x.restore();
+
+  // session bubbles
+  const msgs=[['you','use integer cents, not floats',BLUE],
+              ['agent','wrote parse() with floats',DIM],
+              ['you','no — revert that',RED],
+              ['agent','switched to integer cents',DIM],
+              ['you','tests are table-driven here',BLUE]];
+  msgs.forEach(([who,m,c],i)=>{
+    const a=fin(u,1.0+i*0.55);
+    const yy=340+i*88;
+    card(150,yy,900,72,{a,accent:c==='#e07070'?'rgba(224,112,112,0.4)':'rgba(255,255,255,0.13)'});
+    text(who,180,yy+46,{size:22,color:c,font:MONO,weight:700,a});
+    text(m,290,yy+46,{size:27,color:INK,a});
+  });
+
+  // arrow to the diff
+  const a2=fin(u,4.6);
+  arrow(1090,560,1230,560,{a:a2});
+  card(1270,420,500,280,{a:a2,accent:'rgba(95,192,138,0.4)'});
+  text('the pull request',1300,470,{size:24,color:GREEN,font:MONO,a:a2});
+  text('+  42  lines',1300,540,{size:34,color:GREEN,font:MONO,weight:700,a:a2});
+  text('−  8   lines',1300,590,{size:34,color:RED,font:MONO,weight:700,a:a2});
+  text('merged ✓',1300,650,{size:26,color:MUT,font:MONO,a:a2});
+
+  // strike out the conversation
+  const a3=fin(u,6.4,0.9);
+  if(a3>0){
+    x.save();x.globalAlpha=a3*0.85;x.strokeStyle=RED;x.lineWidth=6;x.lineCap='round';
+    x.beginPath();x.moveTo(150,350);x.lineTo(150+900*a3,760);x.stroke();
+    x.restore();
+    text('conversation: deleted',150,860,{size:34,color:RED,weight:700,a:a3});
+    wrap('The diff shows what shipped. It cannot show you what you tried, what you corrected, or what you threw away.',150,915,1150,{size:29,color:MUT,a:a3,lh:40});
+  }
+}
+
+function sceneEntire(t){
+  const u=t-S.p3;
+  eyebrow('the missing piece',150,150,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.25);
+  text('Entire keeps the conversation,',150,250,{size:58,weight:800});
+  text('and ties it to the commit.',150,325,{size:58,weight:800,color:AMBER});
+  x.restore();
+
+  const a1=fin(u,1.8);
+  card(210,440,560,300,{a:a1,accent:'rgba(111,157,234,0.45)'});
+  text('the session',250,500,{size:26,color:BLUE,font:MONO,a:a1});
+  text('every prompt',250,560,{size:30,color:INK,a:a1});
+  text('every tool call',250,608,{size:30,color:INK,a:a1});
+  text('every correction',250,656,{size:30,color:INK,a:a1});
+  text('every dead end',250,704,{size:30,color:INK,a:a1});
+
+  const a2=fin(u,3.2);
+  // chain link
+  x.save();x.globalAlpha=a2;
+  x.strokeStyle=AMBER;x.lineWidth=5;
+  x.beginPath();x.moveTo(800,590);x.lineTo(1130,590);x.stroke();
+  x.beginPath();x.arc(930,590,26,0,7);x.stroke();
+  x.beginPath();x.arc(1000,590,26,0,7);x.stroke();
+  x.restore();
+  text('linked',965,548,{size:22,color:AMBER,font:MONO,align:'center',a:a2});
+
+  const a3=fin(u,4.2);
+  card(1160,440,560,300,{a:a3,accent:'rgba(95,192,138,0.45)'});
+  text('the commit',1200,500,{size:26,color:GREEN,font:MONO,a:a3});
+  text('11679e1',1200,570,{size:40,color:INK,font:MONO,weight:700,a:a3});
+  text('Add roundToNearest…',1200,620,{size:26,color:MUT,a:a3});
+  text('checkpoint 138e19befa1b',1200,690,{size:23,color:GREEN,font:MONO,a:a3});
+
+  const a4=fin(u,6.4);
+  wrap('Now your history answers a new question: not just what changed — but how you got there.',150,860,1620,{size:34,color:MUT,a:a4,lh:48,weight:600});
+}
+
+function sceneGrain(t){
+  const u=t-S.p4;
+  grainMark(215,175,58,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.15);
+  text('grain',290,196,{size:56,weight:800});
+  x.restore();
+  x.save();x.globalAlpha=fin(u,0.5);
+  text('reads those sessions and writes down what it learns.',150,300,{size:46,weight:700,color:MUT});
+  x.restore();
+
+  const a1=fin(u,1.6);
+  card(160,420,440,260,{a:a1,accent:'rgba(111,157,234,0.4)'});
+  text('captured sessions',200,480,{size:26,color:BLUE,font:MONO,a:a1});
+  text('what actually',200,545,{size:32,a:a1});
+  text('happened while',200,590,{size:32,a:a1});
+  text('building this repo',200,635,{size:32,a:a1});
+
+  const a2=fin(u,2.8);
+  arrow(625,550,720,550,{a:a2,color:AMBER});
+  grainMark(800,550,58,{a:a2});
+  text('grain',800,640,{size:26,color:AMBER,font:MONO,align:'center',a:a2});
+  arrow(880,550,975,550,{a:a2,color:AMBER});
+
+  const a3=fin(u,4.0);
+  card(1010,400,760,300,{a:a3,accent:'rgba(224,164,65,0.5)'});
+  text('AGENTS.md',1050,462,{size:30,color:AMBER,font:MONO,weight:700,a:a3});
+  const rules=['- Use ESM import/export, not require.',
+               '- Write tests with node:test.',
+               '- Tests are table-driven: a cases array.',
+               '- Return a Result; do not throw.'];
+  rules.forEach((r,i)=>text(r,1050,520+i*44,{size:26,color:INK,font:MONO,a:fin(u,4.4+i*0.35)}));
+
+  const a4=fin(u,7.2);
+  wrap('The next agent reads this file before it writes a single line.',150,850,1620,{size:36,color:INK,a:a4,weight:600});
+  wrap('Written from evidence, not guesswork.',150,910,1620,{size:32,color:AMBER,a:fin(u,8.4),weight:600});
+}
+
+function sceneSignals(t){
+  const u=t-S.p5;
+  eyebrow('what it looks for',150,140,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.2);
+  text('Four signals',150,235,{size:58,weight:800});
+  x.restore();
+
+  const sig=[
+    ['1','Commands',AMBER,'How the repo is really tested, built, and run.','learned from what you ran 122 times'],
+    ['2','Conventions',BLUE,'ESM vs CJS. Test style. Throw vs return.','read from the code the agent wrote'],
+    ['3','Corrections',GREEN,'The redirections you keep repeating.','"no — return a Result, not a throw"'],
+    ['4','Dead ends',RED,'The paths you tried and backed out.','only the session knows these'],
+  ];
+  sig.forEach(([n,title,c,desc,sub],i)=>{
+    const col=i%2, row=(i/2)|0;
+    const px=150+col*840, py=320+row*280;
+    const a=fin(u,1.0+i*1.5);
+    card(px,py,780,240,{a,accent:`${c}55`});
+    x.save();x.globalAlpha=a;
+    x.beginPath();x.arc(px+58,py+62,28,0,7);x.fillStyle=c+'33';x.fill();
+    x.restore();
+    text(n,px+58,py+73,{size:30,color:c,font:MONO,weight:800,align:'center',a});
+    text(title,px+110,py+74,{size:38,weight:800,a});
+    wrap(desc,px+40,py+135,700,{size:28,color:MUT,a,lh:36});
+    text(sub,px+40,py+205,{size:23,color:c,font:MONO,a});
+  });
+
+  const a5=fin(u,8.0);
+  if(a5>0){
+    card(150,880,1620,130,{a:a5,accent:'rgba(224,112,112,0.45)'});
+    text('Why #4 needs Entire:',190,935,{size:30,weight:800,color:RED,a:a5});
+    wrap('a diff can only show you what survived. What got reverted exists only in the session.',190,978,1520,{size:28,color:MUT,a:a5});
+  }
+}
+
+function sceneTested(t){
+  const u=t-S.p6;
+  eyebrow('what you just tested',150,130,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.2);
+  text('One real session, captured.',150,220,{size:52,weight:800});
+  x.restore();
+
+  const a1=fin(u,0.9);
+  term(150,280,1620,300,'purse — entire checkpoint list',{a:a1});
+  termLines([
+    {t:'$ entire checkpoint list',c:GREEN},
+    {t:'',lh:14},
+    {t:'  branch       main',c:MUT},
+    {t:'  checkpoints  1',c:MUT},
+    {t:'',lh:14},
+    {t:'● 138e19befa1b  "Add a roundToNearest(cents, step) function…"',c:AMBER,a:fin(u,2.4)},
+    {t:'  07-27 18:30 (11679e1) Add roundToNearest: round cents…',c:INK,a:fin(u,2.8)},
+  ],190,360,{a:a1});
+
+  const a2=fin(u,4.4);
+  term(150,620,1620,330,'purse — entire why src/money.js',{a:a2});
+  termLines([
+    {t:'$ entire why src/money.js',c:GREEN},
+    {t:'',lh:14},
+    {t:'  src/money.js',c:INK},
+    {t:'  309 lines · 7% AI (21) · 93% human (288)',c:AMBER,w:800,a:fin(u,6.0)},
+    {t:'',lh:14},
+    {t:'  - 138e19befa1b  21 lines · Claude Code · session ffb9b780',c:MUT,a:fin(u,7.0)},
+  ],190,700,{a:a2});
+
+  const a3=fin(u,8.4);
+  text('every one of those 21 lines traces back to the prompt that wrote it',150,1010,{size:30,color:MUT,a:a3,weight:600});
+}
+
+function sceneGrainReads(t){
+  const u=t-S.p7;
+  eyebrow('then grain reads it',150,130,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.2);
+  text('It learned the repo from one session.',150,220,{size:52,weight:800});
+  x.restore();
+
+  const a1=fin(u,0.8);
+  term(150,290,1620,560,'grain scan --entire purse',{a:a1});
+  termLines([
+    {t:'$ grain scan --entire ~/Developer/Workspace/Claude/purse',c:GREEN},
+    {t:'',lh:16},
+    {t:'# Repo brief — distilled by Grain',c:INK,w:700},
+    {t:'',lh:10},
+    {t:'From 1 session(s). Provenance: 1 Entire checkpoint.',c:DIM,a:fin(u,2.0)},
+    {t:'',lh:14},
+    {t:'## How this repo is tested',c:AMBER,w:700,a:fin(u,3.0)},
+    {t:'- npm test  ·  1×',c:INK,a:fin(u,3.4)},
+    {t:'',lh:14},
+    {t:'## House conventions (from the code the agent wrote)',c:AMBER,w:700,a:fin(u,4.4)},
+    {t:'- Error handling: result-return — e.g. return err(…)',c:INK,a:fin(u,4.9)},
+    {t:'- Quote style: single',c:INK,a:fin(u,5.4)},
+    {t:'- Indentation: 2-space',c:INK,a:fin(u,5.8)},
+  ],190,370,{a:a1});
+
+  const a2=fin(u,7.4);
+  card(150,890,1620,130,{a:a2,accent:'rgba(224,164,65,0.5)'});
+  text('Nobody wrote any of that down.',190,948,{size:34,weight:800,color:AMBER,a:a2});
+  text('It came from watching one session work.',190,995,{size:30,color:MUT,a:a2});
+}
+
+function sceneCommands(t){
+  const u=t-S.p8;
+  eyebrow('the three commands',150,150,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.2);
+  text('What each one gives you',150,245,{size:54,weight:800});
+  x.restore();
+
+  const cmds=[
+    ['grain scan',AMBER,'A brief of how the repo is really worked in.','the commands, conventions, corrections, dead ends'],
+    ['grain agents',GREEN,'A proposed AGENTS.md you can commit.','the rules file the next agent will read'],
+    ['grain audit',BLUE,'Which sessions and commits produced each file.','the "where did this code come from" view'],
+  ];
+  cmds.forEach(([c,col,what,sub],i)=>{
+    const a=fin(u,1.0+i*1.6);
+    const yy=350+i*200;
+    card(150,yy,1620,170,{a,accent:col+'55'});
+    text('$ '+c,190,yy+62,{size:36,color:col,font:MONO,weight:700,a});
+    text(what,190,yy+112,{size:31,color:INK,a});
+    text(sub,190,yy+150,{size:24,color:DIM,a});
+  });
+
+  const a4=fin(u,6.0);
+  text('add  --entire  to read them straight from Entire\'s checkpoints',150,1000,{size:30,color:AMBER,font:MONO,a:a4});
+}
+
+function sceneWhy(t){
+  const u=t-S.p9;
+  eyebrow('why it matters',150,140,{a:fin(u,0)});
+  x.save();x.globalAlpha=fin(u,0.2);
+  text('Sessions stop being exhaust.',150,240,{size:58,weight:800});
+  text('They become context.',150,320,{size:58,weight:800,color:AMBER});
+  x.restore();
+
+  // loop diagram
+  const a1=fin(u,1.6);
+  const nodes=[['agent works',480,560,BLUE],['Entire captures',960,470,GREEN],['grain distills',1440,560,AMBER],['next agent starts smarter',960,760,INK]];
+  nodes.forEach(([label,cx,cy,c],i)=>{
+    const a=fin(u,1.6+i*0.6);
+    card(cx-200,cy-52,400,104,{a,accent:c+'55'});
+    text(label,cx,cy+10,{size:30,weight:700,align:'center',a,color:c});
+  });
+  const a2=fin(u,4.2);
+  arrow(690,530,750,490,{a:a2,color:DIM});
+  arrow(1170,490,1230,530,{a:a2,color:DIM});
+  arrow(1400,625,1180,730,{a:a2,color:DIM});
+  arrow(740,730,530,625,{a:a2,color:DIM});
+  text('↻  it compounds',960,900,{size:34,color:AMBER,align:'center',a:fin(u,5.2),weight:700});
+
+  const a3=fin(u,6.6);
+  wrap('And it only works because the conversation was kept.',150,1000,1620,{size:34,color:MUT,a:a3,weight:600,align:'left'});
+}
+
+function draw(t){
+  bg();
+  if(t<S.p2) sceneProblem(t);
+  else if(t<S.p3) sceneThrown(t);
+  else if(t<S.p4) sceneEntire(t);
+  else if(t<S.p5) sceneGrain(t);
+  else if(t<S.p6) sceneSignals(t);
+  else if(t<S.p7) sceneTested(t);
+  else if(t<S.p8) sceneGrainReads(t);
+  else if(t<S.p9) sceneCommands(t);
+  else sceneWhy(t);
+  // subtle footer
+  text('grain 🌾  ·  github.com/abhid1234/grain',150,1045,{size:20,color:'#3d4655',font:MONO});
+}
+
+window.seek=(ms)=>{draw(ms/1000);};
+window.__dur=DUR;
+draw(0);
+</script></body></html>

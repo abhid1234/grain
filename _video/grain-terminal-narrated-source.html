@@ -1,0 +1,191 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:#05070a}canvas{display:block}
+</style></head><body>
+<canvas id="c" width="1080" height="1080"></canvas>
+<script>
+const cv=document.getElementById('c'), x=cv.getContext('2d');
+const W=1080,H=1080;
+const MONO='Menlo,Monaco,"SF Mono",ui-monospace,monospace';
+
+// palette
+const FG='#d8e0ea', DIM='#6b7787', CMT='#7d8ea6';
+const GREEN='#5fd08a', AMBER='#e8b04b', BLUE='#7aa7f0', RED='#f07a7a', WHITE='#ffffff', PUR='#c08ae0';
+const C={fg:FG,dim:DIM,cmt:CMT,g:GREEN,a:AMBER,b:BLUE,r:RED,w:WHITE,p:PUR};
+
+const FS=23, LH=34;           // font size / line height
+const PADX=46, PADY=96;       // inside the window
+const WINX=34, WINY=34, WINW=W-68, WINH=H-68;
+const MAXLINES=Math.floor((WINH-PADY-40)/LH);
+
+// ---------------- the script (real data) ----------------
+// k: cmt (typed comment) | cmd (typed command) | out (streamed output) | wait
+// d: duration in seconds
+const P1='~/purse', P2='~/grain';
+const S=[
+ // ---- ACT 1 · the problem (VO n1 @1.0) ----
+ {k:'cmt',s:'# Every coding agent I use is brilliant — and amnesiac.',d:3.2,p:P1,at:1.0},
+ {k:'cmt',s:'# I correct it. It fixes. We go back and forth.',d:3.0,p:P1},
+ {k:'cmt',s:'# Then the pull request merges…',d:2.6,p:P1},
+ {k:'cmd',s:'git log --oneline -1',d:1.3,p:P1},
+ {k:'out',d:1.6,L:[['11679e1  Add roundToNearest: round cents to nearest step','dim']]},
+ {k:'cmt',s:'# …and the conversation that produced it is gone.',d:3.4,p:P1},
+ {k:'cmt',s:'# All that survives is the diff.',d:2.6,p:P1},
+
+ // ---- ACT 2 · what Entire is solving (VO n2 @19.29) ----
+ {k:'cmt',s:'# Entire is going after exactly that:',d:2.8,p:P1,at:19.29},
+ {k:'out',d:6.0,L:[['',''],['  "Every agent session stored in your repo."','a'],['  "Checkpoint for every commit."','a'],['  "Context that is attached, not archived."','a'],['',''],['  — entire.io','dim']]},
+
+ // ---- ACT 3 · waitlist → access (VO n3 @31.83) ----
+ {k:'cmt',s:'# Jul 9  — joined the waitlist.',d:2.6,p:P1,at:31.83},
+ {k:'cmt',s:'# Jul 15 — "You are in. Let the rebellion begin."',d:3.6,p:P1},
+ {k:'cmd',s:'entire login',d:1.3,p:P1},
+ {k:'out',d:2.6,L:[['  Logging in to: https://us.auth.entire.io','dim'],['  Waiting for sign-in... ✓ Login complete.','g']]},
+
+ // ---- ACT 4 · before state (VO n4 @43.90) ----
+ {k:'cmd',s:'entire status',d:1.2,p:P1,at:43.90},
+ {k:'out',d:1.6,L:[['● Enabled · manual-commit · branch main','g'],['  Agents · Claude Code','dim']]},
+ {k:'cmt',s:'# Before we start: who wrote this file?',d:2.6,p:P1},
+ {k:'cmd',s:'entire why src/money.js',d:1.3,p:P1},
+ {k:'out',d:1.6,L:[['  288 lines · 0% AI (0) · 100% human (288)','dim']]},
+
+ // ---- ACT 5 · agent works, checkpoint lands (VO n5 @52.95) ----
+ {k:'cmd',s:'claude',d:1.0,p:P1,at:52.95},
+ {k:'out',d:1.8,L:[['  Entire CLI will link this conversation to your next commit.','a']]},
+ {k:'out',d:2.6,L:[['> Add roundToNearest(cents, step) following AGENTS.md,','w'],['  with table-driven tests. Run npm test, then commit.','w']]},
+ {k:'out',d:3.0,L:[['  · wrote  src/money.js','dim'],['  · npm test → 96 pass, 0 fail','g'],['  · commit 11679e1','g']]},
+ {k:'cmd',s:'entire checkpoint list',d:1.4,p:P1},
+ {k:'out',d:3.2,L:[['  checkpoints  1','dim'],['',''],['● 138e19befa1b  "Add a roundToNearest(cents, step)…"','a'],['  07-27 18:30 (11679e1)','fg']]},
+
+ // ---- ACT 6 · the discovery (VO n6 @66.51) ----
+ {k:'cmt',s:'# Same question again.',d:2.2,p:P1,at:66.51},
+ {k:'cmd',s:'entire why src/money.js',d:1.4,p:P1},
+ {k:'out',d:4.0,L:[['  src/money.js','fg'],['  309 lines · 7% AI (21) · 93% human (288)','a'],['',''],['  - 138e19befa1b  21 lines · Claude Code · ffb9b780','dim']]},
+ {k:'cmt',s:'# Every AI line traces back to the prompt that wrote it.',d:3.6,p:P1},
+ {k:'cmt',s:'# An audit trail I have never had before.',d:3.0,p:P1},
+
+ // ---- ACT 7 · what I built (VO n7 @81.09) ----
+ {k:'cmt',s:'# So here is what I built on top of it.',d:3.0,p:P1,at:81.09},
+ {k:'cmd',s:'cd ../grain',d:1.2,p:P1},
+ {k:'cmt',s:'# grain reads those captured sessions.',d:2.8,p:P2},
+
+ // ---- ACT 8 · grain scan (VO n8 @89.58) ----
+ {k:'cmd',s:'grain scan --entire ../purse',d:1.6,p:P2,at:89.58},
+ {k:'out',d:6.0,L:[['# Repo brief — distilled by Grain','w'],['',''],['From 1 session(s). Provenance: 1 Entire checkpoint.','dim'],['',''],['## How this repo is tested','a'],['- npm test  ·  1×','fg'],['',''],['## House conventions (from the code the agent wrote)','a'],['- Error handling: result-return — e.g. return err(…)','fg'],['- Quote style: single','fg'],['- Indentation: 2-space','fg']]},
+ {k:'cmt',s:'# Nobody wrote that down. It learned it by watching.',d:3.6,p:P2},
+
+ // ---- ACT 9 · proposed AGENTS.md (VO n9 @104.21) ----
+ {k:'cmd',s:'grain agents --entire ../purse',d:1.6,p:P2,at:104.21},
+ {k:'out',d:4.4,L:[['# AGENTS.md — proposed by Grain','w'],['',''],['## Conventions','a'],['- Return a Result; do not throw.','fg'],['- Use single quotes.','fg'],['- Indent with 2 spaces.','fg']]},
+ {k:'cmt',s:'# The file the next agent reads before it writes a line.',d:3.6,p:P2},
+
+ // ---- ACT 10 · audit, close, thanks (VO n10 @114.74) ----
+ {k:'cmd',s:'grain audit --entire ../purse',d:1.6,p:P2,at:114.74},
+ {k:'out',d:3.4,L:[['# Provenance audit — who/what produced this repo','w'],['',''],['| File               | Edits | Sessions | Commit  |','dim'],['| src/money.js       |   1   |    1     | 11679e1 |','fg']]},
+ {k:'cmt',s:'# Sessions stop being exhaust. They become context.',d:3.4,p:P2},
+ {k:'cmt',s:'# Thanks to the Entire team for building something different.',d:4.2,p:P2},
+ {k:'out',d:3.4,L:[['',''],['  grain 🌾   github.com/abhid1234/grain','a'],['  built on Entire · entire.io','dim']]},
+];
+
+// cumulative timings
+let acc=0.7; const T=S.map(e=>{if(e.at!==undefined)acc=e.at; const st=acc; acc+=e.d; return {...e,st,en:acc};});
+const DUR=136.0;
+
+// ---------------- drawing ----------------
+function rr(px,py,w,h,r){x.beginPath();x.moveTo(px+r,py);x.arcTo(px+w,py,px+w,py+h,r);x.arcTo(px+w,py+h,px,py+h,r);x.arcTo(px,py+h,px,py,r);x.arcTo(px,py,px+w,py,r);x.closePath();}
+
+function backdrop(){
+  let g=x.createLinearGradient(0,0,W,H);
+  g.addColorStop(0,'#0d1420');g.addColorStop(0.5,'#090d15');g.addColorStop(1,'#06090e');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W*0.8,H*0.08,0,W*0.8,H*0.08,620);
+  g.addColorStop(0,'rgba(232,176,75,0.11)');g.addColorStop(1,'rgba(232,176,75,0)');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W*0.12,H*0.95,0,W*0.12,H*0.95,600);
+  g.addColorStop(0,'rgba(122,167,240,0.10)');g.addColorStop(1,'rgba(122,167,240,0)');
+  x.fillStyle=g;x.fillRect(0,0,W,H);
+}
+
+function windowChrome(title){
+  x.save();
+  x.shadowColor='rgba(0,0,0,0.6)';x.shadowBlur=60;x.shadowOffsetY=22;
+  rr(WINX,WINY,WINW,WINH,18);x.fillStyle='#0a0e14';x.fill();
+  x.shadowColor='transparent';
+  rr(WINX,WINY,WINW,WINH,18);x.lineWidth=1.5;x.strokeStyle='rgba(255,255,255,0.13)';x.stroke();
+  // title bar
+  x.save();rr(WINX,WINY,WINW,54,18);x.clip();
+  const g=x.createLinearGradient(WINX,WINY,WINX,WINY+54);
+  g.addColorStop(0,'rgba(255,255,255,0.07)');g.addColorStop(1,'rgba(255,255,255,0.03)');
+  x.fillStyle=g;x.fillRect(WINX,WINY,WINW,54);x.restore();
+  x.beginPath();x.moveTo(WINX,WINY+54);x.lineTo(WINX+WINW,WINY+54);
+  x.strokeStyle='rgba(255,255,255,0.09)';x.lineWidth=1;x.stroke();
+  const dots=[['#ff5f57',0],['#febc2e',1],['#28c840',2]];
+  for(const [c,i] of dots){x.beginPath();x.arc(WINX+30+i*24,WINY+27,7,0,7);x.fillStyle=c;x.fill();}
+  x.font=`500 19px ${MONO}`;x.fillStyle=DIM;x.textAlign='center';
+  x.fillText(title,WINX+WINW/2,WINY+34);
+  x.restore();
+}
+
+// build the visible line list at time t
+function linesAt(t){
+  const out=[];
+  for(const e of T){
+    if(t>=e.en){ // fully done
+      if(e.k==='cmd') out.push({t:e.s,c:'w',prompt:e.p});
+      else if(e.k==='cmt') out.push({t:e.s,c:'cmt'});
+      else for(const [s,c] of e.L) out.push({t:s,c:c||'fg'});
+      continue;
+    }
+    if(t<e.st) break;
+    const p=(t-e.st)/e.d;
+    if(e.k==='cmd'||e.k==='cmt'){
+      const n=Math.min(e.s.length,Math.floor(p/0.78*e.s.length));
+      out.push({t:e.s.slice(0,n),c:e.k==='cmd'?'w':'cmt',prompt:e.k==='cmd'?e.p:undefined,cur:true});
+    } else {
+      const n=Math.min(e.L.length,Math.floor(p/0.85*e.L.length)+1);
+      for(let i=0;i<n;i++){const [s,c]=e.L[i];out.push({t:s,c:c||'fg'});}
+    }
+    break;
+  }
+  return out;
+}
+
+function draw(t){
+  backdrop();
+  const cwd = (()=>{ let p=P1; for(const e of T){ if(t>=e.st && e.p) p=e.p; } return p; })();
+  windowChrome(cwd+' — zsh');
+
+  const all=linesAt(t);
+  const vis=all.slice(Math.max(0,all.length-MAXLINES));
+  x.save();
+  rr(WINX+1,WINY+55,WINW-2,WINH-56,18);x.clip();
+  let yy=WINY+PADY;
+  x.textAlign='left';x.textBaseline='alphabetic';
+  for(const L of vis){
+    let px=WINX+PADX;
+    if(L.prompt!==undefined){
+      x.font=`700 ${FS}px ${MONO}`;
+      x.fillStyle=BLUE;x.fillText(L.prompt,px,yy);px+=x.measureText(L.prompt).width;
+      x.fillStyle=GREEN;x.fillText(' ❯ ',px,yy);px+=x.measureText(' ❯ ').width;
+    }
+    x.font=`${L.c==='w'?700:500} ${FS}px ${MONO}`;
+    x.fillStyle=C[L.c]||FG;
+    x.fillText(L.t,px,yy);
+    if(L.cur){
+      const w=x.measureText(L.t).width;
+      if(Math.floor(t*2.2)%2===0){x.fillStyle='rgba(232,176,75,0.9)';x.fillRect(px+w+3,yy-FS+5,12,FS+2);}
+    }
+    yy+=LH;
+  }
+  // idle cursor at the end
+  const last=vis[vis.length-1];
+  if(last && !last.cur && Math.floor(t*2.2)%2===0){
+    x.fillStyle='rgba(232,176,75,0.55)';x.fillRect(WINX+PADX,yy-FS+5,12,FS+2);
+  }
+  x.restore();
+}
+
+window.seek=(ms)=>draw(ms/1000);
+window.__dur=DUR;
+console.log('DUR',DUR);
+draw(0);
+</script></body></html>

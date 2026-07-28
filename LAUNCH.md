@@ -2,42 +2,62 @@
 
 Repo: https://github.com/abhid1234/grain
 
-> **Before posting:** tag the Entire founder where you see `@[Entire founder]`
-> (fill in their actual handle). Attach the demo output from `DEMO.md` or a
-> screenshot of `examples/AGENTS.sample.md`.
+**Assets (full paths):**
+- Video (use this one): `/Users/abhijitdas/Developer/Workspace/Claude/grain/_video/grain-demo-v2.mp4`
+  — themed CRT/phosphor terminal demo, narrated, 2:13, square 1080
+- Poster: `/Users/abhijitdas/Developer/Workspace/Claude/grain/_video/grain-demo-v2-poster.jpg`
+- Blog / long-form: `/Users/abhijitdas/Developer/Workspace/Claude/grain/BLOG.md`
+- Earlier cuts: `grain-terminal-narrated.mp4` (plain theme), `grain-terminal-demo.mp4` (silent), `grain-explainer.mp4` (slides)
+
+> **Before posting:** tag Entire's founder / the Entire company page where you see
+> `@Entire`. Attach the narrated terminal demo.
+
+**Structure (same as the video):** problem → applied for access → got in → started
+using it → what I discovered → what I built → thanks to the team.
 
 ---
 
 ## LinkedIn post
 
-We keep the pull request and throw away the conversation that produced it. So I built a tool that mines the conversation instead.
+Every coding agent I use is brilliant and completely amnesiac.
 
-I got into the beta for Entire (entire.io) — it keeps every agent-coding session linked to the commit it produced, so your history records not just *what* changed but *how* you got there. That "how" is the interesting part, and it's normally deleted the moment the PR merges.
+It writes the code, I correct it, we go back and forth, and I steer it away from the three things that don't work in this repo. Then the pull request merges — and that whole conversation disappears. All that survives is the diff. Next session, the agent starts from zero and I teach it the same things again.
 
-So I built **grain** 🌾 — an open-source tool that reads those captured sessions and distills them into your repo's house rules (an AGENTS.md you can actually commit).
+That's the problem Entire (entire.io) is going after. Their pitch is refreshingly narrow: **every agent session stored in your repo. A checkpoint for every commit. Context that's attached, not archived.**
 
-It pulls out four things the sessions already prove:
-- **Commands** — how the repo is really tested, built, and run (learned from what you ran 100+ times, not guessed).
-- **Conventions** — ESM vs CJS, which test runner, table-driven tests, return-a-Result vs throw, quote and indent style.
-- **Corrections** — the redirections your reviews kept making ("no, do it this way"), surfaced as candidate preferences.
-- **Dead ends** — the paths the agent tried and you backed out. This one is only possible because Entire keeps the *session*, not just the final diff. The diff can't show you what got reverted.
+I joined their waitlist on July 9th. On the 15th I got the email — *"You're in. Let the rebellion begin."* — so I spent this week actually using it on a small library I've been building.
 
-A few things I cared about building it:
-- **Redaction first.** Session transcripts can be more sensitive than the code — reasoning, pasted data, sometimes live secrets. Nothing leaves grain's core without passing through redaction (keys, tokens, JWTs, emails, and even home-directory paths). There's a test asserting known secret shapes never survive.
-- **Deterministic floor, optional LLM.** The rules are derived deterministically; an optional Claude pass can only *rephrase* them, never invent one. It runs with no API key at all.
-- **Provenance.** `grain audit` shows which sessions and commits produced each file — the enterprise "where did this code come from" view. Line-level agent-vs-human share comes from Entire's own `entire why`.
+**What I found:**
 
-It's MIT, zero-dependency, ~190 tests, and it reads Entire's checkpoints directly (or raw Claude Code transcripts, so you can try it today):
+I enabled it, then asked a simple question: who wrote this file? `entire why src/money.js` → 288 lines, 0% AI, 100% human.
+
+Then I let Claude Code add a feature. The moment the session started, Entire told me it would link the conversation to my next commit. It did — one checkpoint, tied to commit `11679e1`, holding the entire session that produced it.
+
+Then I asked the same question again:
+
+**309 lines · 7% AI (21) · 93% human**
+
+Twenty-one lines, and every one traces back to the prompt that created it. That's an audit trail I've never had before. Not "an AI touched this file" — *this* prompt produced *these* lines, in *this* session, on *this* commit.
+
+**So I built something on top of it.**
+
+It's called **grain** — open source, MIT. It reads those captured sessions and distills them into the repo's house rules.
+
+From a single captured session, it worked out how the repo is tested, that errors return a Result instead of throwing, the quote style, the indentation. Nobody wrote any of that down. It learned it by watching the work happen. Then it proposes the actual AGENTS.md — the file the next agent reads before it writes a line — plus an audit view of which sessions and commits produced each file.
 
 ```
-grain scan   --entire .    # a brief of how the repo is really worked in
+grain scan   --entire .    # how the repo is really worked in
 grain agents --entire .    # a proposed AGENTS.md
 grain audit  --entire .    # per-file provenance
 ```
 
-This is a personal experiment, not an endorsement — evaluate any session-log tooling against your own security needs. But the direction feels right: if we're going to capture how agents and engineers actually build software, we should put that record to work. @[Entire founder] — this is a fun thing to build on top of what you're making.
+**Why I think this direction matters:** context in AI-assisted engineering is project-specific. An agent excels when it learns how to code in *your* repo, not in the abstract. AGENTS.md and skills carry that context, but writing them is guesswork — you do it *before* you've watched an agent work. Captured sessions flip that around: the rules get written from evidence.
 
-Repo: github.com/abhid1234/grain
+One thing worth saying plainly: session transcripts can be more sensitive than the code they produced — reasoning, pasted data, sometimes secrets. Entire redacts secrets before storage and keeps the metadata on a branch inside your own repo, which is a sane starting posture. grain extends that same care to its own output; nothing leaves its core unredacted, and there's a test asserting known secret shapes never survive.
+
+Big thanks to the @Entire team for building something genuinely different. This is early, and I'm one user with one week on it — but it's the first tool that made my agents' history feel like an asset instead of exhaust.
+
+grain is open source if you want to pull it apart: github.com/abhid1234/grain
 
 #ai #developertools #opensource
 
@@ -45,10 +65,31 @@ Repo: github.com/abhid1234/grain
 
 ## X / short version
 
-We keep the PR and throw away the conversation that made it.
+Every coding agent I use is brilliant and completely amnesiac. The PR merges and the conversation that produced it is deleted.
 
-So I built **grain** 🌾 (open source) on top of Entire (@[Entire founder]): it reads your captured agent-coding sessions and distills them into an AGENTS.md — the commands, conventions, corrections, and the dead ends the final diff can't show you.
+@Entire fixes that — every agent session stored in your repo, a checkpoint for every commit.
 
-Redaction-first, deterministic, ~190 tests.
+Got off the waitlist last week. `entire why src/money.js` → **309 lines · 7% AI (21) · 93% human**, every AI line traced to the prompt that wrote it.
 
-github.com/abhid1234/grain
+So I built **grain** 🌾 on top: it reads those sessions and distills them into your repo's house rules (a committable AGENTS.md).
+
+Open source: github.com/abhid1234/grain
+
+---
+
+## Blog / newsletter version
+
+Full long-form post at `/Users/abhijitdas/Developer/Workspace/Claude/grain/BLOG.md`
+— same narrative arc, ~1,200 words: the amnesia problem → what Entire is going
+after (their own words) → waitlist Jul 9 / access Jul 15 → the 0% → 7% discovery →
+what I built and the four signals → why it's a loop → the redaction caveat →
+thanks to the team.
+
+Title: **"Every coding agent I use is brilliant — and completely amnesiac"**
+
+## Comment to drop under your own post (LinkedIn rewards this)
+
+The part I keep coming back to: a diff can only show you what survived. What got
+reverted — the approach you tried and backed out — exists only in the session.
+That's the signal grain's "dead ends" detector reads, and it's simply not
+recoverable from git history alone.
