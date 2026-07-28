@@ -1,0 +1,183 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<title>Every coding agent I use is brilliant — and completely amnesiac</title>
+<style>
+  body{max-width:760px;margin:0 auto;padding:48px 22px 90px;
+       font:19px/1.72 -apple-system,BlinkMacSystemFont,"Segoe UI",Georgia,serif;color:#1a1a1a;background:#fff}
+  h1{font-size:40px;line-height:1.18;letter-spacing:-.02em;margin:0 0 14px}
+  h2{font-size:27px;margin:44px 0 12px;letter-spacing:-.01em}
+  p{margin:0 0 20px}
+  blockquote{border-left:3px solid #e0a441;margin:24px 0;padding:4px 0 4px 20px;color:#444}
+  blockquote p{margin:0}
+  code{background:#f2f2ef;padding:2px 6px;border-radius:4px;font-size:.86em;
+       font-family:ui-monospace,Menlo,Monaco,monospace}
+  pre code{background:none;padding:0;font-size:14px;color:inherit}
+  a{color:#b9791b}
+  ol li{margin-bottom:10px}
+  img{width:100%;border-radius:10px}
+  .howto{background:#fffbea;border:1px solid #f0e2b6;border-radius:12px;padding:18px 22px;
+         font-size:15px;line-height:1.6;color:#5a4a20;margin-bottom:40px}
+  .howto b{color:#3d3110}
+  @media print{.howto{display:none}}
+</style></head><body>
+
+<div class="howto">
+  <b>Fast-loading preview.</b> For pasting into Substack use <code>blog-substack.html</code> (images embedded). <br><br><b>How to publish:</b> select everything below this box
+  (click just under it, then <b>⌘A</b> won't work — instead click at the start of the
+  title and <b>shift-click</b> at the very end), copy with <b>⌘C</b>, and paste into a new
+  Substack post. The screenshots are embedded and come across with the paste; Substack
+  re-hosts them automatically. If any image doesn't survive the paste, the originals are in
+  <code>grain/_launch/images/</code> — drag them in at the matching spot.
+  Delete this box before publishing (it's excluded from selection if you start at the title).
+</div>
+
+<h1>Every coding agent I use is brilliant — and completely amnesiac</h1>
+
+<p><em>How I got early access to Entire, what I found in the first week, and the tool I built on top of it.</em></p>
+
+<h2>The problem</h2>
+
+<p>Every coding agent I use is brilliant and completely amnesiac.</p>
+
+<p>It writes the code. I correct it. We go back and forth. I steer it away from the three things that don't work in this repo — the util that looks right but isn't, the pattern we abandoned last month, the test style we actually use. Then the pull request merges, and that whole conversation disappears.</p>
+
+<p>All that survives is the diff.</p>
+
+<p>Next session, the agent starts from zero, and I teach it the same things again.</p>
+
+<p>This is the part of AI-assisted engineering nobody has solved yet. We've gotten very good at generating code and completely ignored the record of <em>how</em> the code came to be. That record is the most useful artifact in the building, and we throw it in the bin every time a PR merges.</p>
+
+<h2>What Entire is going after</h2>
+
+<p><a href="https://entire.io">Entire</a> is aimed at exactly that. They describe themselves as a <strong>developer platform for humans and agents</strong> — <em>"fast, distributed, independent Git hosting for agents and humans."</em> Two halves, and I initially only appreciated one of them.</p>
+
+<p><strong>Half one — the session layer:</strong></p>
+
+<blockquote><p><strong>Every agent session stored in your repo.</strong><br>
+<strong>A checkpoint for every commit.</strong><br>
+<strong>Context that's attached, not archived.</strong></p></blockquote>
+
+<p>Instead of the session living in a vendor's dashboard (or nowhere), it lives with your code, linked to the commit it produced. That unlocks the rest of their feature set: <strong>review the intent, not just the code</strong> (send a branch to multiple agents for an intent-aware review), <strong>search across both code and sessions</strong>, and <strong>resume work across any agent</strong> with the full session state carried forward. It works with Claude Code, Codex, Gemini, Cursor, Copilot and others — it isn't tied to one vendor's agent.</p>
+
+<p><strong>Half two — the distributed git network:</strong></p>
+
+<p>This is the part I glossed over at first, and it's arguably the bigger bet. Entire mirrors your repo <strong>around the world for maximum agent throughput</strong> — regional mirrors in US East, EU Central, and Australia — and <em>"every clone carries its checkpoints and session history at shallow-clone speed."</em></p>
+
+<h3>So how is this different from GitHub?</h3>
+
+<p>The thing worth being precise about: <strong>it isn't a GitHub replacement.</strong> Their own instruction is <em>"keep the repo on GitHub — one command creates a regional mirror."</em> You don't migrate. The differences are additive:</p>
+
+<table style="width:100%;border-collapse:collapse;margin:24px 0;font-size:16px">
+<thead><tr>
+<th style="text-align:left;padding:10px 12px;border-bottom:2px solid #ddd"></th>
+<th style="text-align:left;padding:10px 12px;border-bottom:2px solid #ddd">GitHub</th>
+<th style="text-align:left;padding:10px 12px;border-bottom:2px solid #ddd">Entire</th>
+</tr></thead>
+<tbody>
+<tr><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>Stores</strong></td><td style="padding:10px 12px;border-bottom:1px solid #eee">code + PRs + issues</td><td style="padding:10px 12px;border-bottom:1px solid #eee">code <strong>+ the agent sessions that produced it</strong>, linked commit-by-commit</td></tr>
+<tr><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>Topology</strong></td><td style="padding:10px 12px;border-bottom:1px solid #eee">one central origin</td><td style="padding:10px 12px;border-bottom:1px solid #eee">a <strong>distributed mirror network</strong> across regions, tuned for agent throughput</td></tr>
+<tr><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>Review</strong></td><td style="padding:10px 12px;border-bottom:1px solid #eee">read the diff</td><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>review the intent</strong> — what the agent was asked, and why</td></tr>
+<tr><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>Search</strong></td><td style="padding:10px 12px;border-bottom:1px solid #eee">code and PRs</td><td style="padding:10px 12px;border-bottom:1px solid #eee">code <strong>and</strong> sessions, prompts, reasoning</td></tr>
+<tr><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>Handoff</strong></td><td style="padding:10px 12px;border-bottom:1px solid #eee">clone and rebuild context</td><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>resume across agents</strong> with session state intact</td></tr>
+<tr><td style="padding:10px 12px;border-bottom:1px solid #eee"><strong>Relationship</strong></td><td style="padding:10px 12px;border-bottom:1px solid #eee">—</td><td style="padding:10px 12px;border-bottom:1px solid #eee">sits alongside it; mirrors your existing GitHub repo</td></tr>
+</tbody></table>
+
+<p>The framing that made it click for me: GitHub is built for a world where humans write the commits. Entire is built for a world where agents write a lot of them — so the unit of history isn't just the diff, it's <em>the diff plus the conversation that produced it</em> — and the network is shaped so a fleet of agents can pull that history fast, wherever they're running.</p>
+
+<p>I joined their waitlist on July 9th. On the 15th I got the email — <em>"You're in. Let the rebellion begin."</em> — so I spent the week actually using it on a small library I've been building.</p>
+
+<h2>What I found</h2>
+
+<p>I enabled it in the repo, then asked a simple question: who wrote this file?</p>
+
+<p style="margin:28px 0 0"><img src="images/before.jpg" alt="entire why shows the file is 100% human-written" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px">The baseline. All me.</p>
+
+<p>Then I let Claude Code add a feature. The moment the session started, Entire said what it was going to do.</p>
+
+<p style="margin:28px 0 0"><img src="images/session.jpg" alt="Entire links the conversation to the next commit" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px">“Entire CLI will link this conversation to your next commit.”</p>
+
+<p>And it did — one checkpoint, tied to commit <code>11679e1</code>, holding the entire session that produced it.</p>
+
+<p style="margin:28px 0 0"><img src="images/checkpoint.jpg" alt="entire checkpoint list shows one checkpoint tied to the commit" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px">The session and the commit, joined at the hip.</p>
+
+<p>Then I asked the same question again.</p>
+
+<p style="margin:28px 0 0"><img src="images/why.jpg" alt="entire why now shows 309 lines, 7% AI, 93% human" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px"><strong>Twenty-one lines — and every one traces back to the prompt that created it.</strong></p>
+
+<p>That's an audit trail I've never had before. Not "an AI touched this file sometime" — <em>this</em> prompt produced <em>these</em> lines, in <em>this</em> session, on <em>this</em> commit. You can even ask it per-line: <code>entire why src/money.js:182</code>.</p>
+
+<h2>So I built something on top of it</h2>
+
+<p>Here's the thought that wouldn't leave me alone.</p>
+
+<p>If the sessions are being kept, and they're linked to commits, then the repo now contains a record of <strong>how it is actually built</strong> — not the sanitized diff, the real thing. The commands that get run. The conventions the code follows. The corrections a reviewer keeps repeating. The approaches that got tried and backed out.</p>
+
+<p>That's exactly the context an agent needs and never has.</p>
+
+<p>So I built <strong><a href="https://github.com/abhid1234/grain">grain</a></strong> — open source, MIT, zero dependencies. It reads captured sessions and distills them into the repo's house rules.</p>
+
+<p style="margin:28px 0 0"><img src="images/scan.jpg" alt="grain scan distills the repo brief from one captured session" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px">From a <em>single</em> captured session.</p>
+
+<p>It worked out how the repo is tested, that errors return a <code>Result</code> instead of throwing, the quote style, the indentation. Nobody wrote any of that down. It learned it by watching the work happen.</p>
+
+<p>Then it proposes the actual rules file — the one the next agent reads before it writes a line.</p>
+
+<p style="margin:28px 0 0"><img src="images/agents.jpg" alt="grain agents proposes an AGENTS.md" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px">A committable AGENTS.md, written from evidence instead of guesswork.</p>
+
+<p>And an audit view — which sessions and commits produced each file.</p>
+
+<p style="margin:28px 0 0"><img src="images/audit.jpg" alt="grain audit shows per-file provenance" style="width:100%;max-width:100%;border-radius:10px;display:block"></p>
+<p style="text-align:center;font-size:14px;color:#6b7280;margin:8px 0 30px">The “where did this code come from” view.</p>
+
+<h2>What grain looks for</h2>
+
+<p>Four signals, in increasing order of "you could only get this from a session":</p>
+
+<ol>
+<li><strong>Commands</strong> — how the repo is really tested, built, and run. Learned from what you actually ran, not from a README that drifted two years ago.</li>
+<li><strong>Conventions</strong> — ESM vs CJS, test style, throw vs return, quotes, indentation — read from the code the agent wrote and you accepted.</li>
+<li><strong>Corrections</strong> — the redirections a reviewer keeps repeating. Say <em>"no, return a Result, don't throw"</em> three times and it becomes a candidate house rule.</li>
+<li><strong>Dead ends</strong> — the paths tried and backed out. <strong>This one is only possible because the session was kept.</strong> A diff can only show you what survived; what got reverted exists nowhere in git history. It exists in the session.</li>
+</ol>
+
+<p>That fourth signal is the whole argument for why session capture matters. Your repo's most expensive lessons are the things you <em>stopped</em> doing, and they're invisible to every tool that reads only the final state.</p>
+
+<h2>The part I care about: this is a loop</h2>
+
+<p>Context in AI-assisted engineering is project-specific. An agent excels when it has learned how to code in <em>your</em> repo, not in the abstract. <code>AGENTS.md</code> and skills carry that context — but writing them is guesswork, because you write them <em>before</em> you've watched an agent work in the codebase.</p>
+
+<p>Captured sessions invert that. The rules get written from evidence:</p>
+
+<pre style="background:#0b1014;color:#c8f5d8;border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:ui-monospace,Menlo,Monaco,monospace;font-size:14px;line-height:1.6;margin:22px 0"><code>agent works → Entire captures → grain distills → next agent starts smarter</code></pre>
+
+<p>Sessions stop being exhaust and start being context. Every session makes the next one better. And it only works because the conversation was kept.</p>
+
+<h2>The caveat worth stating plainly</h2>
+
+<p>Session transcripts can be <strong>more</strong> sensitive than the code they produced. They contain reasoning, pasted data, and sometimes live secrets. I hit this immediately — my first scan of raw transcripts surfaced an API token I'd pasted weeks earlier.</p>
+
+<p>So redaction isn't a feature in grain, it's a constraint: nothing leaves the core without passing through it — keys, tokens, JWTs, emails, even home-directory paths — and there's a test asserting known secret shapes never survive. Entire redacts secrets before storage and keeps the metadata on a branch inside your own repo, which is a sane starting posture.</p>
+
+<p>If you're evaluating session-log tooling for a company, those are the questions that matter: where do the logs live, who can read them, how long are they kept, and do they become someone else's training data.</p>
+
+<h2>Thanks, and where to find it</h2>
+
+<p>Big thanks to the <a href="https://entire.io">Entire</a> team for building something genuinely different. This is early — I'm one user with one week on it — but it's the first tool that made my agents' history feel like an asset instead of exhaust.</p>
+
+<p><strong>grain</strong> is open source and MIT licensed: <a href="https://github.com/abhid1234/grain">github.com/abhid1234/grain</a></p>
+
+<pre style="background:#0b1014;color:#c8f5d8;border-radius:10px;padding:18px 20px;overflow-x:auto;font-family:ui-monospace,Menlo,Monaco,monospace;font-size:14px;line-height:1.6;margin:22px 0"><code>grain scan   --entire .    # how the repo is really worked in
+grain agents --entire .    # a proposed AGENTS.md
+grain audit  --entire .    # per-file provenance</code></pre>
+
+<p>It reads Entire's checkpoints directly, and raw Claude Code transcripts too, so you can try it today.</p>
+
+<p><em>This is a personal project and a personal opinion — not an endorsement, and not advice. Evaluate any tool against your own security and compliance requirements.</em></p>
+
+</body></html>
