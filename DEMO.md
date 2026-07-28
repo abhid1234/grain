@@ -77,3 +77,45 @@ _473 file(s) touched by agent sessions · 1325 edit operation(s) · 0 file(s) tr
 | `~/Developer/Workspace/Claude/constraintguard/site/index.html` | 26 | 1 | — |
 | `~/Developer/Workspace/Claude/grain/test/grain.test.js` | 26 | 1 | — |
 ```
+
+---
+
+## `grain scan --entire` — reading Entire's captured checkpoints
+
+The real end-to-end path. A single Claude Code session was captured by Entire in
+the `purse` repo; Entire linked it to the commit it produced, and grain distilled
+that session into repo context — with provenance back to the checkpoint.
+
+```
+$ entire checkpoint list
+  branch       main
+  checkpoints  1
+
+● 138e19befa1b  "Add a roundToNearest(cents, step) function to src/money.j..."
+  07-27 18:30 (11679e1) Add roundToNearest: round cents to the nearest step
+
+$ entire why src/money.js
+  src/money.js
+  309 lines · 7% AI (21) · 93% human (288)
+  Top checkpoints:
+  - 138e19befa1b  21 lines · Claude Code · session ffb9b780
+```
+
+```
+# Repo brief — distilled by Grain
+
+_From 1 session(s), 2 shell command(s) observed. This is learned from how the repo was actually worked in, not guessed._
+
+_Provenance: 1 Entire checkpoint(s) — traceable to the commits that produced them._
+
+## How this repo is tested
+- `npm test`  ·  1×
+
+## Version control
+- `git add`  ·  1×
+
+## House conventions (from the code the agent wrote)
+- **Error handling:** result-return (1/1) — e.g. `return err('not-integer')`
+- **Quote style:** single (2/2)
+- **Indentation:** 2-space (4/4)
+```

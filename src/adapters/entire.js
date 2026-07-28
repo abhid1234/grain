@@ -19,8 +19,9 @@ export function normalizeCheckpoint(obj) {
     id: o.id || o.checkpointId || o.checkpoint_id || '',
     session: o.session || o.sessionId || o.session_id || '',
     commit: o.commit || o.sha || o.commitSha || o.commit_sha || '',
-    intent: o.intent || o.summary || o.title || '',
-    files: o.files || o.changedFiles || o.changed_files || [],
+    intent: o.intent || o.summary || o.title || o.message || '',
+    files: o.files || o.changedFiles || o.changed_files || o.files_touched || [],
+    agent: o.agent || '',
     project: o.cwd || o.project || o.repo || '',
     tokens: o.tokens ?? o.tokenCount ?? o.token_count ?? null,
   };
@@ -40,7 +41,13 @@ export function checkpointToSession(envelope, rawTranscriptText) {
   return parseTranscript(rawTranscriptText, {
     id: env.session || env.id || 'entire-session',
     project: env.project || '',
-    provenance: { source: 'entire', checkpoint: env.id, commit: env.commit, intent: env.intent },
+    provenance: {
+      source: 'entire',
+      checkpoint: env.id,
+      commit: env.commit,
+      intent: env.intent,
+      agent: env.agent,
+    },
   });
 }
 

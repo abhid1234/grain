@@ -35,13 +35,25 @@ examples:
   grain agents ~/.claude/projects/-Users-me-Developer-myrepo/ --against ./AGENTS.md
 `;
 
-// Load sessions from either Entire (--entire [cwd]) or raw transcripts (<path>).
-function loadSessions(argv, target) {
-  if (argv.includes('--entire')) {
-    const cwd = target && !target.startsWith('--') ? target : process.cwd();
-    return loadFromEntire({ cwd });
+// Flags that consume the following argument (so it isn't mistaken for the path).
+const VALUE_FLAGS = new Set(['--against']);
+
+/** First positional argument after the command, ignoring flags and their values. */
+export function positional(argv) {
+  for (let i = 1; i < argv.length; i++) {
+    const a = argv[i];
+    if (VALUE_FLAGS.has(a)) { i++; continue; }
+    if (a.startsWith('--')) continue;
+    return a;
   }
-  return loadAll(target);
+  return undefined;
+}
+
+// Load sessions from either Entire (--entire [repo]) or raw transcripts (<path>).
+function loadSessions(argv) {
+  const path = positional(argv);
+  if (argv.includes('--entire')) return loadFromEntire({ cwd: path || process.cwd() });
+  return loadAll(path);
 }
 
 // Optionally rephrase the deterministic rules via the LLM (cautious-only).
@@ -58,11 +70,12 @@ async function ruleSet(ctx, useLlm) {
 }
 
 export async function main(argv) {
-  const [cmd, target] = argv;
+  const cmd = argv[0];
+  const target = positional(argv);
 
   if (cmd === 'scan') {
     if (!target && !argv.includes('--entire')) { process.stderr.write('grain: scan needs a path\n'); return 2; }
-    process.stdout.write(renderBrief(distill(loadSessions(argv, target))));
+    process.stdout.write(renderBrief(distill(loadSessions(argv))));
     return 0;
   }
 
@@ -88,13 +101,13 @@ export async function main(argv) {
 
   if (cmd === 'audit') {
     if (!target && !argv.includes('--entire')) { process.stderr.write('grain: audit needs a path\n'); return 2; }
-    process.stdout.write(renderAudit(auditFiles(loadSessions(argv, target))));
+    process.stdout.write(renderAudit(auditFiles(loadSessions(argv))));
     return 0;
   }
 
   if (cmd === 'agents') {
     if (!target && !argv.includes('--entire')) { process.stderr.write('grain: agents needs a path\n'); return 2; }
-    const ctx = distill(loadSessions(argv, target));
+    const ctx = distill(loadSessions(argv));
     const rules = await ruleSet(ctx, argv.includes('--llm'));
     const proposed = renderAgents(ctx, { rules });
     const ai = argv.indexOf('--against');

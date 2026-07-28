@@ -15,6 +15,7 @@ import { observe, extractConventions } from '../src/core/signals/conventions.js'
 import { renderAgents } from '../src/core/render/agents.js';
 import { lineDiff, summarizeDiff, renderDiff } from '../src/core/diff.js';
 import { normalizeCheckpoint, parseCheckpointList, checkpointToSession } from '../src/adapters/entire.js';
+import { positional } from '../src/cli/grain.js';
 import { deriveRules } from '../src/core/rules.js';
 import { buildRulePrompt, reconcileRules } from '../src/core/llm.js';
 import { auditFiles } from '../src/core/audit.js';
@@ -420,6 +421,35 @@ test('entire: normalizeCheckpoint field fallbacks', (t) => Promise.all([
   }),
 ]));
 
+test('entire: real CLI payload shape (checkpoint_id / message / files_touched)', (t) => {
+  // Exactly what `entire checkpoint explain --json` returns (v0.8.x).
+  const real = parseCheckpointList(JSON.stringify([{
+    checkpoint_id: '138e19befa1b',
+    session_id: 'ffb9b780-aeaf-44aa-8895-3080fd83efef',
+    agent: 'Claude Code',
+    message: 'Add roundToNearest: round cents to the nearest step',
+    files_touched: ['src/money.js'],
+  }]))[0];
+  return Promise.all([
+    t.test('id from checkpoint_id', () => assert.equal(real.id, '138e19befa1b')),
+    t.test('session from session_id', () => assert.equal(real.session, 'ffb9b780-aeaf-44aa-8895-3080fd83efef')),
+    t.test('intent from message', () => assert.match(real.intent, /roundToNearest/)),
+    t.test('files from files_touched', () => assert.deepEqual(real.files, ['src/money.js'])),
+    t.test('agent captured', () => assert.equal(real.agent, 'Claude Code')),
+  ]);
+});
+
+test('cli: positional() ignores flags and flag values', (t) => Promise.all([
+  // Regression: `scan --entire <path>` used to read the path as "--entire".
+  t.test('path after --entire', () => assert.equal(positional(['scan', '--entire', '/repo']), '/repo')),
+  t.test('bare --entire has no path', () => assert.equal(positional(['scan', '--entire']), undefined)),
+  t.test('plain path', () => assert.equal(positional(['scan', '/repo']), '/repo')),
+  t.test('skips --against value', () =>
+    assert.equal(positional(['agents', '--against', './AGENTS.md', '--entire', '/repo']), '/repo')),
+  t.test('path before --against', () =>
+    assert.equal(positional(['agents', '/repo', '--against', './AGENTS.md']), '/repo')),
+]));
+
 test('entire: parseCheckpointList', (t) => Promise.all([
   t.test('empty array', () => assert.deepEqual(parseCheckpointList('[]'), [])),
   t.test('array form', () => assert.equal(parseCheckpointList('[{"id":"a"},{"id":"b"}]').length, 2)),
@@ -432,12 +462,12 @@ test('entire: checkpointToSession carries provenance', (t) => {
     '{"type":"user","cwd":"/repo","message":{"role":"user","content":[{"type":"text","text":"do it"}]}}',
     '{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"node --test"}}]}}',
   ].join('\n');
-  const env = normalizeCheckpoint({ id: 'cp9', sessionId: 'sess9', commit: 'deadbee', intent: 'add tests' });
+  const env = normalizeCheckpoint({ id: 'cp9', sessionId: 'sess9', commit: 'deadbee', intent: 'add tests', agent: 'Claude Code' });
   const sess = checkpointToSession(env, raw);
   return Promise.all([
     t.test('parsed events from raw transcript', () => assert.equal(eventsOf(sess, 'tool', 'Bash').length, 1)),
     t.test('provenance set', () =>
-      assert.deepEqual(sess.provenance, { source: 'entire', checkpoint: 'cp9', commit: 'deadbee', intent: 'add tests' })),
+      assert.deepEqual(sess.provenance, { source: 'entire', checkpoint: 'cp9', commit: 'deadbee', intent: 'add tests', agent: 'Claude Code' })),
     t.test('distill surfaces the source', () => {
       const ctx = distill([sess]);
       assert.equal(ctx.sources.length, 1);
