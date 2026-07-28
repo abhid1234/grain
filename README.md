@@ -26,10 +26,25 @@ ends you kept reverting**. Then it writes that back as a brief you can drop into
 
 Grain is only possible because something keeps the **whole session** linked to the
 commit — not just the final pull request. [Entire](https://entire.io) is that
-layer: it captures each agent session and ties it to the code it produced. Grain
-is the downstream use — it turns that captured history into living, project-specific
-context. (Grain also reads raw Claude Code transcripts directly, so you can try it
-today.)
+layer: *"fast, distributed, independent Git hosting for agents and humans."*
+
+Two halves matter here:
+
+- **The session layer** — every agent session stored in your repo, a checkpoint for
+  every commit, context that's attached rather than archived. That's what makes
+  reviewing *intent*, searching sessions, and resuming work across agents possible.
+- **The distributed git network** — regional mirrors (US East, EU Central,
+  Australia) tuned for agent throughput, where every clone carries its checkpoints
+  and session history at shallow-clone speed.
+
+It is **not a GitHub replacement** — you keep your repo where it is and Entire
+mirrors it. GitHub is built for a world where humans write the commits; Entire is
+built for one where agents write many of them, so the unit of history becomes the
+diff *plus the conversation that produced it*.
+
+Grain is the downstream use — it turns that captured history into living,
+project-specific context. (Grain also reads raw Claude Code transcripts directly,
+so you can try it today.)
 
 ## Try it
 

@@ -25,16 +25,52 @@ it in the bin every time a PR merges.
 
 ## What Entire is going after
 
-[Entire](https://entire.io) is aimed at exactly that. Their pitch is refreshingly
-narrow:
+[Entire](https://entire.io) is aimed at exactly that. They describe themselves as a
+**developer platform for humans and agents** — *"fast, distributed, independent Git
+hosting for agents and humans."* Two halves, and I initially only appreciated one
+of them.
+
+**Half one — the session layer:**
 
 > **Every agent session stored in your repo.**
 > **A checkpoint for every commit.**
 > **Context that's attached, not archived.**
 
-It's a git-hosting layer built for a world where most commits have an agent
-somewhere in their history. Instead of the session living in a vendor's dashboard
-(or nowhere), it lives with your code, linked to the commit it produced.
+Instead of the session living in a vendor's dashboard (or nowhere), it lives with
+your code, linked to the commit it produced. That unlocks the rest of their feature
+set: **review the intent, not just the code** (send a branch to multiple agents for
+an intent-aware review), **search across both code and sessions**, and **resume work
+across any agent** with the full session state carried forward. It works with Claude
+Code, Codex, Gemini, Cursor, Copilot and others — it isn't tied to one vendor's
+agent.
+
+**Half two — the distributed git network:**
+
+This is the part I glossed over at first, and it's arguably the bigger bet. Entire
+mirrors your repo **around the world for maximum agent throughput** — regional
+mirrors in US East, EU Central, and Australia — and *"every clone carries its
+checkpoints and session history at shallow-clone speed."*
+
+### So how is this different from GitHub?
+
+The thing worth being precise about: **it isn't a GitHub replacement.** Their own
+instruction is *"keep the repo on GitHub — one command creates a regional mirror."*
+You don't migrate. The differences are additive:
+
+| | GitHub | Entire |
+|---|---|---|
+| **Stores** | code + PRs + issues | code **+ the agent sessions that produced it**, linked commit-by-commit |
+| **Topology** | one central origin | a **distributed mirror network** across regions, tuned for agent throughput |
+| **Review** | read the diff | **review the intent** — what the agent was asked and why |
+| **Search** | code and PRs | code **and** sessions, prompts, reasoning |
+| **Handoff** | clone and rebuild context | **resume across agents** with session state intact |
+| **Relationship** | — | sits alongside it; mirrors your existing GitHub repo |
+
+The framing that made it click for me: GitHub is built for a world where humans
+write the commits. Entire is built for a world where agents write a lot of them —
+so the unit of history isn't just the diff, it's *the diff plus the conversation
+that produced it* — and the network is shaped so a fleet of agents can pull that
+history fast, wherever they're running.
 
 I joined their waitlist on July 9th. On the 15th I got the email —
 *"You're in. Let the rebellion begin."* — so I spent the week actually using it on

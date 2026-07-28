@@ -23,7 +23,13 @@ Every coding agent I use is brilliant and completely amnesiac.
 
 It writes the code, I correct it, we go back and forth, and I steer it away from the three things that don't work in this repo. Then the pull request merges — and that whole conversation disappears. All that survives is the diff. Next session, the agent starts from zero and I teach it the same things again.
 
-That's the problem Entire (entire.io) is going after. Their pitch is refreshingly narrow: **every agent session stored in your repo. A checkpoint for every commit. Context that's attached, not archived.**
+That's the problem Entire (entire.io) is going after — and it's two bets, not one.
+
+**The session layer:** every agent session stored in your repo. A checkpoint for every commit. Context that's attached, not archived. Which unlocks reviewing the *intent* rather than just the diff, searching code and sessions together, and resuming work across any agent with full session state.
+
+**The distributed git network:** this is the half I under-appreciated at first. Entire mirrors your repo across regions — US East, EU Central, Australia — for agent throughput, and every clone carries its checkpoints and session history at shallow-clone speed.
+
+And to be precise about it: **it's not a GitHub replacement.** Their own instruction is "keep the repo on GitHub — one command creates a regional mirror." GitHub is built for a world where humans write the commits. Entire is built for one where agents write a lot of them, so the unit of history becomes the diff *plus the conversation that produced it* — distributed so a fleet of agents can pull it fast.
 
 I joined their waitlist on July 9th. On the 15th I got the email — *"You're in. Let the rebellion begin."* — so I spent this week actually using it on a small library I've been building.
 
@@ -67,7 +73,7 @@ grain is open source if you want to pull it apart: github.com/abhid1234/grain
 
 Every coding agent I use is brilliant and completely amnesiac. The PR merges and the conversation that produced it is deleted.
 
-@Entire fixes that — every agent session stored in your repo, a checkpoint for every commit.
+@Entire fixes that — every agent session stored in your repo, a checkpoint for every commit, mirrored across regions for agent throughput. Not a GitHub replacement: you keep your repo and it mirrors it.
 
 Got off the waitlist last week. `entire why src/money.js` → **309 lines · 7% AI (21) · 93% human**, every AI line traced to the prompt that wrote it.
 
